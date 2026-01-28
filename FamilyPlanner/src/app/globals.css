@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: "DM Sans", system-ui, sans-serif;
+  --font-body: "Source Sans 3", system-ui, sans-serif;
+  --cream: #faf8f5;
+  --warm: #f5f0e8;
+  --sage-500: #6d8662;
+  --sage-600: #556b48;
+  --sage-700: #43553b;
+}
+
+body {
+  @apply bg-cream text-sage-800 antialiased;
+  font-family: var(--font-body);
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-sage-500 focus:ring-offset-2 disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-sage-600 text-white hover:bg-sage-700 py-2 px-4;
+  }
+  .btn-secondary {
+    @apply btn bg-sage-200 text-sage-800 hover:bg-sage-300 py-2 px-4;
+  }
+  .btn-ghost {
+    @apply btn bg-transparent hover:bg-sage-100 py-2 px-4;
+  }
+  .card {
+    @apply rounded-xl border border-sage-200 bg-white shadow-sm;
+  }
+  .input {
+    @apply w-full rounded-lg border border-sage-200 bg-white px-3 py-2 text-sage-800 placeholder:text-sage-400 focus:border-sage-500 focus:outline-none focus:ring-1 focus:ring-sage-500;
+  }
+}

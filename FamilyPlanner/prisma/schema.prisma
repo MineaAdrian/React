@@ -1,0 +1,95 @@
+// Family Planner – Prisma schema
+// Connects to Supabase Postgres (same DB as schema.sql).
+// Run schema.sql in Supabase first; use Prisma for type-safe access and optional migrations.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// Family – one per household
+model Family {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  members   Profile[]
+  recipes   Recipe[]
+  weekPlans WeekPlan[]
+  shopping  ShoppingItem[]
+
+  @@map("families")
+}
+
+// User profile (extends Supabase auth.users)
+model Profile {
+  id        String   @id @db.Uuid
+  email     String?
+  name      String?
+  familyId  String?   @map("family_id") @db.Uuid
+  role      String    @default("member") // 'admin' | 'member'
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  family Family? @relation(fields: [familyId], references: [id], onDelete: SetNull)
+
+  @@map("profiles")
+}
+
+// Recipe – ingredients stored as JSON array [{ name, quantity, unit }]
+model Recipe {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  familyId           String?  @map("family_id") @db.Uuid
+  name               String
+  mealType           String   @map("meal_type") // breakfast | lunch | dinner | togo | dessert
+  ingredients        Json     @default("[]")
+  instructions       String   @default("")
+  cookingTimeMinutes Int?     @map("cooking_time_minutes")
+  difficulty         String?  // easy | medium | hard
+  tags               String[] @default([])
+  photoUrl           String?  @map("photo_url")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  family Family? @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@map("recipes")
+}
+
+// Week plan – one per family per week; days = JSON array of DayPlan
+model WeekPlan {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  familyId  String   @map("family_id") @db.Uuid
+  startDate DateTime @map("start_date") @db.Date
+  days      Json     @default("[]")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@unique([familyId, startDate])
+  @@map("week_plans")
+}
+
+// Shopping list item – real-time checklist per family per week
+model ShoppingItem {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  familyId       String   @map("family_id") @db.Uuid
+  weekStart      DateTime @map("week_start") @db.Date
+  ingredientName String   @map("ingredient_name")
+  totalQuantity  Decimal  @map("total_quantity") @db.Decimal
+  unit           String   @default("pcs")
+  checked        Boolean  @default(false)
+  checkedBy      String[] @map("checked_by") @db.Uuid
+  recipeIds      String[] @map("recipe_ids") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@unique([familyId, weekStart, ingredientName, unit])
+  @@map("shopping_items")
+}

@@ -1,0 +1,97 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { getWeekPlan } from "@/app/actions/week";
+import { getRecipes } from "@/app/actions/recipes";
+import { useWeekStore } from "@/store/weekStore";
+import { getWeekDates, formatWeekRange, toDateString } from "@/lib/week";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { DaySelector } from "./DaySelector";
+import { MealSection } from "./MealSection";
+import type { DayPlan, Recipe } from "@/types";
+
+export function WeekCalendar() {
+  const { profile } = useAuth();
+  const { weekStart, weekStartStr, setWeek } = useWeekStore();
+  const [plan, setPlan] = useState<{ id: string; days: DayPlan[] } | null>(null);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date>(getWeekDates(weekStart)[0]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([
+      getWeekPlan(weekStartStr),
+      getRecipes(),
+    ]).then(([p, r]) => {
+      setPlan(p ?? null);
+      setRecipes(r);
+      setLoading(false);
+    });
+  }, [weekStartStr]);
+
+  const weekDates = getWeekDates(weekStart);
+  const selectedDateStr = toDateString(selectedDate);
+  const dayPlan = plan?.days.find((d) => d.date === selectedDateStr);
+
+  const handleMealUpdate = () => {
+    getWeekPlan(weekStartStr).then(setPlan);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <p className="text-sage-600">Loading week…</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="font-display text-2xl font-semibold text-sage-800">
+          {formatWeekRange(weekStart)}
+        </h1>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setWeek(new Date(weekStart.getTime() - 7 * 24 * 60 * 60 * 1000))}
+            className="btn-secondary"
+          >
+            Previous week
+          </button>
+          <button
+            type="button"
+            onClick={() => setWeek(new Date())}
+            className="btn-ghost"
+          >
+            This week
+          </button>
+          <button
+            type="button"
+            onClick={() => setWeek(new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000))}
+            className="btn-secondary"
+          >
+            Next week
+          </button>
+        </div>
+      </div>
+
+      <DaySelector
+        weekDates={weekDates}
+        selectedDate={selectedDate}
+        onSelect={setSelectedDate}
+      />
+
+      {dayPlan && (
+        <MealSection
+          dayPlan={dayPlan}
+          recipes={recipes}
+          weekStartStr={weekStartStr}
+          onUpdate={handleMealUpdate}
+        />
+      )}
+    </div>
+  );
+}
