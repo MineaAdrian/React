@@ -7,6 +7,7 @@ import { RecipeSearchModal } from "../recipes/RecipeSearchModal";
 import type { DayPlan, Recipe } from "@/types";
 import type { MealType } from "@/types";
 import { useAuth } from "@/components/providers/AuthProvider";
+import Image from "next/image";
 
 interface MealSectionProps {
   dayPlan: DayPlan;
@@ -97,7 +98,9 @@ export function MealSection({ dayPlan, recipes, weekStartStr, onUpdate }: MealSe
                             ${recipe.photo_url ? '' : 'bg-[#F9F4D8]'}
                           `}>
                             {recipe.photo_url ? (
-                              <img src={recipe.photo_url} alt="" className="w-full h-full object-cover" />
+                              <div className="relative w-full h-full">
+                                <Image src={recipe.photo_url} alt="" fill className="object-cover" />
+                              </div>
                             ) : (
                               <span className="grayscale opacity-40">🍴</span>
                             )}
@@ -145,10 +148,11 @@ export function MealSection({ dayPlan, recipes, weekStartStr, onUpdate }: MealSe
             <div className="rounded-[2.5rem] border border-sage-100 bg-white shadow-2xl p-0 overflow-hidden flex flex-col max-h-[calc(92vh-120px)] animate-in fade-in slide-in-from-right-4 duration-500">
               <div className="relative h-56 w-full overflow-hidden shrink-0">
                 {selectedRecipe.photo_url ? (
-                  <img
+                  <Image
                     src={selectedRecipe.photo_url}
                     alt={selectedRecipe.name}
-                    className="h-full w-full object-cover scale-105"
+                    fill
+                    className="object-cover scale-105"
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-6xl bg-gradient-to-br from-cream to-sage-50 grayscale opacity-40">�</div>

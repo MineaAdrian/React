@@ -187,7 +187,7 @@ export function SettingsForm({ userId, userName, userRole, familyName, familyId,
                 </div>
               </>
             ) : (
-              <p className="text-sm text-sage-500">You are not in a family. Use the "Join Family" tab to get started.</p>
+              <p className="text-sm text-sage-500">You are not in a family. Use the &quot;Join Family&quot; tab to get started.</p>
             )}
           </div>
         )}
@@ -198,7 +198,7 @@ export function SettingsForm({ userId, userName, userRole, familyName, familyId,
             {invitations.length > 0 && (
               <div className="bg-sage-600 text-white rounded-lg p-4 mb-4 shadow-lg shadow-sage-200 ring-2 ring-white ring-inset">
                 <h3 className="text-xs font-bold uppercase mb-3 flex items-center gap-2">
-                  <span className="text-lg">💌</span> You're Invited!
+                  <span className="text-lg">💌</span> You&apos;re Invited!
                 </h3>
                 <div className="space-y-3">
                   {invitations.map((inv: any) => (

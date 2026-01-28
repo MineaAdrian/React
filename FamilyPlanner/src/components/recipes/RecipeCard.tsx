@@ -1,4 +1,5 @@
 import { clsx } from "clsx";
+import Image from "next/image";
 import type { Recipe } from "@/types";
 
 type Props = {
@@ -15,10 +16,11 @@ export function RecipeCard({ recipe, onSelect, onEdit, compact }: Props) {
       {!compact && (
         <div className="relative h-44 w-full overflow-hidden rounded-t-lg bg-gradient-to-br from-amber-100 via-orange-100 to-rose-100">
           {recipe.photo_url ? (
-            <img
+            <Image
               src={recipe.photo_url}
               alt={recipe.name}
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+              fill
+              className="object-cover transition-transform duration-500 group-hover:scale-110"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-5xl grayscale-[0.3] group-hover:grayscale-0 transition-all">
