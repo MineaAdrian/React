@@ -20,6 +20,8 @@ function toRecipe(r: {
   tags?: string[];
   photoUrl?: string | null;
   photo_url?: string | null;
+  userId?: string | null;
+  user_id?: string | null;
   createdAt?: Date;
   created_at?: string;
 }): Recipe {
@@ -36,6 +38,7 @@ function toRecipe(r: {
     difficulty: (r.difficulty as Recipe["difficulty"]) ?? undefined,
     tags: r.tags?.length ? r.tags : undefined,
     photo_url: r.photoUrl ?? r.photo_url ?? undefined,
+    created_by: r.userId ?? r.user_id ?? null,
     created_at: typeof created === "string" ? created : created.toISOString(),
   };
 }
@@ -62,7 +65,7 @@ export async function createRecipe(
   familyIdInput: string | null,
   photoUrl?: string
 ): Promise<string> {
-  const { familyId: userFamilyId } = await getCurrentUserAndFamily();
+  const { userId, familyId: userFamilyId } = await getCurrentUserAndFamily();
   // If familyIdInput is explicitly null, it means its a public recipe.
   // if its undefined (not passed), we use the user's family.
   const fid = familyIdInput === undefined ? userFamilyId : familyIdInput;
@@ -72,6 +75,7 @@ export async function createRecipe(
     .from("recipes")
     .insert({
       family_id: fid,
+      user_id: userId,
       name,
       meal_type: mealType,
       ingredients,
@@ -161,5 +165,58 @@ export async function deleteRecipe(id: string): Promise<void> {
   if (error) {
     console.error("Error deleting recipe via Supabase:", error);
     throw error;
+  }
+}
+export async function reportRecipe(recipeId: string, reason: string): Promise<void> {
+  try {
+    const { userId, familyId } = await getCurrentUserAndFamily();
+    if (!userId) throw new Error("Unauthorized");
+
+    const supabase = await createClient();
+
+    // Get reporting user's name/email - use maybeSingle to avoid throw if profile missing
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("name, email")
+      .eq("id", userId)
+      .maybeSingle();
+
+    // Get recipe details for the report
+    const { data: recipe } = await supabase
+      .from("recipes")
+      .select("name")
+      .eq("id", recipeId)
+      .maybeSingle();
+
+    if (!recipe) throw new Error("Recipe not found");
+
+    // Attempt to send email but don't fail the whole action if it fails
+    try {
+      const { sendEmail } = await import("@/lib/email");
+
+      // Use ADMIN_EMAIL as the primary destination as requested by the user
+      const reportEmail = process.env.ADMIN_EMAIL || "mineaad14@gmail.com";
+
+      await sendEmail({
+        to: reportEmail,
+        subject: `🚩 Recipe Reported: ${recipe.name}`,
+        html: `
+          <h2>Recipe Report Received</h2>
+          <p><strong>Recipe:</strong> ${recipe.name} (ID: ${recipeId})</p>
+          <p><strong>Reported by:</strong> ${profile?.name || "Unknown"} (${profile?.email || "No email"})</p>
+          <p><strong>Reason:</strong> ${reason}</p>
+          <p>Please review this recipe in the dashboard.</p>
+        `,
+      });
+    } catch (emailErr) {
+      console.warn("Failed to send report email:", emailErr);
+    }
+
+    // Always log the report for server-side traceability
+    console.log(`[REPORT SUCCESS] Recipe ${recipeId} reported by ${userId}. Reason: ${reason}`);
+
+  } catch (err: any) {
+    console.error("reportRecipe critically failed:", err);
+    throw new Error(err.message || "Failed to process report");
   }
 }

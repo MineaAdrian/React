@@ -129,6 +129,7 @@ export async function syncShoppingList(weekStartStr: string) {
           ingredients: (r.ingredients as unknown as Recipe["ingredients"]) ?? [],
           instructions: r.instructions ?? "",
           family_id: r.familyId,
+          created_by: r.userId,
           created_at: r.createdAt.toISOString(),
         });
       });
@@ -166,6 +167,7 @@ export async function syncShoppingList(weekStartStr: string) {
           ingredients: r.ingredients ?? [],
           instructions: r.instructions ?? "",
           family_id: r.family_id,
+          created_by: r.user_id ?? null,
           created_at: r.created_at,
         });
       });

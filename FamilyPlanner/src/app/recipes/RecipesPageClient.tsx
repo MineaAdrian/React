@@ -2,15 +2,17 @@
 
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
-import { getRecipes, createRecipe, uploadRecipePhoto, updateRecipe } from "@/app/actions/recipes";
+import { getRecipes, createRecipe, uploadRecipePhoto, updateRecipe, reportRecipe } from "@/app/actions/recipes";
 import { RecipeCard } from "@/components/recipes/RecipeCard";
 import { MEAL_LABELS } from "@/lib/week";
+import { useAuth } from "@/components/providers/AuthProvider";
 import type { Recipe } from "@/types";
 import type { MealType } from "@/types";
 
 type Props = { familyId: string | null };
 
 export function RecipesPageClient({ familyId }: Props) {
+  const { profile } = useAuth();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -21,7 +23,6 @@ export function RecipesPageClient({ familyId }: Props) {
   const [photoUrl, setPhotoUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
-  // Changed logic to be more intuitive: "Family Only" vs "Public"
   const [isFamilyOnly, setIsFamilyOnly] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -37,7 +38,6 @@ export function RecipesPageClient({ familyId }: Props) {
     setName(recipe.name);
     setMealType(recipe.meal_type);
     setInstructions(recipe.instructions);
-    // If it has a family_id, it is Family Only
     setIsFamilyOnly(!!recipe.family_id);
     setIngredientsText(
       recipe.ingredients
@@ -47,6 +47,16 @@ export function RecipesPageClient({ familyId }: Props) {
     setPhotoUrl(recipe.photo_url || "");
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleReport = async (id: string, reason: string) => {
+    try {
+      await reportRecipe(id, reason);
+      alert("Recipe reported successfully. Thank you!");
+    } catch (err) {
+      console.error("Report failed", err);
+      alert("Failed to report recipe.");
+    }
   };
 
   const handleCancel = () => {
@@ -91,7 +101,6 @@ export function RecipesPageClient({ familyId }: Props) {
         return { name: line.trim(), quantity: 1, unit: "pcs" };
       });
 
-    // If they want family only but have no family, fallback to public or warn
     const targetFamilyId = isFamilyOnly && familyId ? familyId : null;
 
     if (editingRecipeId) {
@@ -267,8 +276,10 @@ export function RecipesPageClient({ familyId }: Props) {
           <RecipeCard
             key={recipe.id}
             recipe={recipe}
+            currentUserId={profile?.id}
             onSelect={() => handleEdit(recipe)}
             onEdit={() => handleEdit(recipe)}
+            onReport={(reason) => handleReport(recipe.id, reason)}
           />
         ))}
       </div>

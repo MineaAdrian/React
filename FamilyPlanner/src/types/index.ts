@@ -32,6 +32,7 @@ export interface Recipe {
   ingredients: Ingredient[];
   instructions: string;
   family_id: string | null; // null = global
+  created_by: string | null;
   cooking_time_minutes?: number;
   difficulty?: "easy" | "medium" | "hard";
   tags?: string[];

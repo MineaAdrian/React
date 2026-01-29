@@ -84,10 +84,10 @@ export function MealSection({ dayPlan, recipes, weekStartStr, onUpdate }: MealSe
                       const isSelected = selectedRecipe?.id === recipe.id;
 
                       return (
-                        <button
+                        <div
                           key={`${mealKey}-${slotIndex}`}
                           onClick={() => handleRecipeClick(recipe)}
-                          className={`group/slot relative flex items-center gap-3 p-3 rounded-2xl border-2 transition-all w-full
+                          className={`group/slot relative flex items-center gap-3 p-3 rounded-2xl border-2 transition-all w-full cursor-pointer
                             ${isSelected
                               ? "border-sage-400 bg-sage-50 shadow-md translate-x-1"
                               : "border-sage-100 bg-white hover:border-sage-200 hover:shadow-sm"}
@@ -122,7 +122,7 @@ export function MealSection({ dayPlan, recipes, weekStartStr, onUpdate }: MealSe
                           >
                             ✕
                           </button>
-                        </button>
+                        </div>
                       );
                     })}
                   </div>

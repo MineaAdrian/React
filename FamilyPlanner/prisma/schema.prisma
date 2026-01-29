@@ -7,9 +7,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // Family – one per household
@@ -45,6 +44,7 @@ model Profile {
 model Recipe {
   id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   familyId           String?  @map("family_id") @db.Uuid
+  userId             String?  @map("user_id") @db.Uuid
   name               String
   mealType           String   @map("meal_type") // breakfast | lunch | dinner | togo | dessert
   ingredients        Json     @default("[]")

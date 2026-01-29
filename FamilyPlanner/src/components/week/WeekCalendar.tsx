@@ -49,31 +49,35 @@ export function WeekCalendar() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="font-display text-2xl font-semibold text-sage-800">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <h1 className="font-display text-2xl font-semibold text-sage-800 text-center sm:text-left">
           {formatWeekRange(weekStart)}
         </h1>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end bg-sage-50 p-1 rounded-xl sm:bg-transparent sm:p-0">
           <button
             type="button"
             onClick={() => setWeek(new Date(weekStart.getTime() - 7 * 24 * 60 * 60 * 1000))}
-            className="btn-secondary"
+            className="btn-secondary h-10 w-10 p-0 flex items-center justify-center sm:w-auto sm:px-4 sm:h-auto"
+            aria-label="Previous Week"
           >
-            Previous week
+            <span className="sm:hidden">←</span>
+            <span className="hidden sm:inline">Previous week</span>
           </button>
           <button
             type="button"
             onClick={() => setWeek(new Date())}
-            className="btn-ghost"
+            className="btn-ghost text-sm font-medium"
           >
             This week
           </button>
           <button
             type="button"
             onClick={() => setWeek(new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000))}
-            className="btn-secondary"
+            className="btn-secondary h-10 w-10 p-0 flex items-center justify-center sm:w-auto sm:px-4 sm:h-auto"
+            aria-label="Next Week"
           >
-            Next week
+            <span className="sm:hidden">→</span>
+            <span className="hidden sm:inline">Next week</span>
           </button>
         </div>
       </div>
