@@ -50,7 +50,7 @@ export function WeekCalendar() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <h1 className="font-display text-2xl font-semibold text-sage-800 text-center sm:text-left">
+        <h1 className="w-full font-display text-2xl font-semibold text-sage-800 text-center sm:w-auto sm:text-left">
           {formatWeekRange(weekStart)}
         </h1>
         <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end bg-sage-50 p-1 rounded-xl sm:bg-transparent sm:p-0">

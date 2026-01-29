@@ -308,3 +308,78 @@ export async function toggleShoppingItem(
     return { ok: true };
   }
 }
+export async function addManualShoppingItem(
+  weekStartStr: string,
+  ingredientName: string,
+  quantity: number,
+  unit: string
+) {
+  const { familyId } = await getCurrentUserAndFamily();
+  if (!familyId) throw new Error("No family found");
+
+  const weekStart = new Date(weekStartStr);
+  const ingredient = ingredientName.trim();
+  const u = unit.trim() || "pcs";
+
+  try {
+    await prisma.shoppingItem.upsert({
+      where: {
+        familyId_weekStart_ingredientName_unit: {
+          familyId,
+          weekStart,
+          ingredientName: ingredient,
+          unit: u,
+        },
+      },
+      update: {
+        totalQuantity: { increment: quantity },
+      },
+      create: {
+        familyId,
+        weekStart,
+        ingredientName: ingredient,
+        totalQuantity: quantity,
+        unit: u,
+        checked: false,
+        checkedBy: [],
+        recipeIds: [],
+      },
+    });
+    return { ok: true };
+  } catch (err) {
+    console.error("Prisma addManualShoppingItem error, falling back to Supabase", err);
+    const supabase = await createClient();
+
+    // Manual upsert logic for Supabase since increment is tricky in a single upsert call
+    const { data: existing } = await supabase
+      .from("shopping_items")
+      .select("total_quantity")
+      .eq("family_id", familyId)
+      .eq("week_start", weekStartStr)
+      .eq("ingredient_name", ingredient)
+      .eq("unit", u)
+      .single();
+
+    if (existing) {
+      await supabase
+        .from("shopping_items")
+        .update({ total_quantity: Number(existing.total_quantity) + quantity })
+        .eq("family_id", familyId)
+        .eq("week_start", weekStartStr)
+        .eq("ingredient_name", ingredient)
+        .eq("unit", u);
+    } else {
+      await supabase.from("shopping_items").insert({
+        family_id: familyId,
+        week_start: weekStartStr,
+        ingredient_name: ingredient,
+        total_quantity: quantity,
+        unit: u,
+        checked: false,
+        checked_by: [],
+        recipe_ids: [],
+      });
+    }
+    return { ok: true };
+  }
+}

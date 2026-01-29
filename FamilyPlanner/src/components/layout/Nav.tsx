@@ -21,11 +21,23 @@ export function Nav() {
 
   return (
     <nav className="sticky top-0 z-20 border-b border-sage-200 bg-white/90 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between px-4 py-3 md:flex-nowrap">
-        <Link href="/week" className="order-1 font-display text-lg font-semibold text-sage-800">
-          Family Planner
-        </Link>
-        <div className="order-3 mt-3 flex w-full items-center gap-1 overflow-x-auto px-1 scrollbar-hide md:order-2 md:mt-0 md:w-auto md:overflow-visible md:px-0">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between px-4 py-2 md:flex-nowrap md:py-3">
+        {/* Row 1: Logo & Auth */}
+        <div className="flex w-full items-center justify-between md:w-auto">
+          <Link href="/week" className="font-display text-lg font-semibold text-sage-800">
+            Family Planner
+          </Link>
+          <div className="flex items-center gap-2 md:hidden">
+            <form action={signOut}>
+              <button type="submit" className="text-sm font-medium text-sage-600 hover:text-sage-800">
+                Sign out
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {/* Row 2 (Mobile) / Row 1 (Desktop): Navigation Links */}
+        <div className="mt-2 flex w-full items-center justify-center gap-1 overflow-x-auto pb-1 scrollbar-hide md:mt-0 md:justify-start md:w-auto md:overflow-visible md:pb-0">
           {links.map(({ href, label }) => (
             <Link
               key={href}
@@ -41,7 +53,9 @@ export function Nav() {
             </Link>
           ))}
         </div>
-        <div className="order-2 flex items-center gap-2 md:order-3">
+
+        {/* Desktop only: Profile and Sign out */}
+        <div className="hidden items-center gap-4 md:flex">
           <span className="text-sm text-sage-600">{profile?.name || profile?.email}</span>
           <form action={signOut}>
             <button type="submit" className="btn-ghost text-sm">

@@ -6,6 +6,7 @@ import { getShoppingList, toggleShoppingItem, refreshShoppingList } from "@/app/
 import { useWeekStore } from "@/store/weekStore";
 import { formatWeekRange } from "@/lib/week";
 import { ShoppingItemRow } from "./ShoppingItemRow";
+import { AddShoppingItem } from "./AddShoppingItem";
 import type { ShoppingItem } from "@/types";
 
 export function ShoppingList() {
@@ -114,49 +115,54 @@ export function ShoppingList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="font-display text-2xl font-semibold text-sage-800">
+      <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+        <h1 className="w-full text-center font-display text-2xl font-semibold text-sage-800 sm:w-auto sm:text-left">
           Shopping list – {formatWeekRange(weekStart)}
         </h1>
-        <div className="flex gap-2">
+        <div className="flex w-full items-center justify-between gap-2 bg-sage-50 p-1 rounded-xl sm:w-auto sm:bg-transparent sm:p-0">
           <button
             type="button"
             onClick={() => setWeek(new Date(weekStart.getTime() - 7 * 24 * 60 * 60 * 1000))}
-            className="btn-secondary"
+            className="btn-secondary h-10 w-10 p-0 flex items-center justify-center sm:w-auto sm:px-4 sm:h-auto"
           >
-            Previous week
+            <span className="sm:hidden">←</span>
+            <span className="hidden sm:inline">Previous week</span>
           </button>
-          <button type="button" onClick={() => setWeek(new Date())} className="btn-ghost">
+          <button type="button" onClick={() => setWeek(new Date())} className="btn-ghost text-sm font-medium">
             This week
           </button>
           <button
             type="button"
             onClick={() => setWeek(new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000))}
-            className="btn-secondary"
+            className="btn-secondary h-10 w-10 p-0 flex items-center justify-center sm:w-auto sm:px-4 sm:h-auto"
           >
-            Next week
+            <span className="sm:hidden">→</span>
+            <span className="hidden sm:inline">Next week</span>
           </button>
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
-        <p className="text-sage-600">
+      <div className="flex flex-col items-center justify-between gap-4 border-b border-sage-100 pb-6 sm:flex-row sm:border-0 sm:pb-0">
+        <p className="text-sm text-sage-600">
           Check items as you shop. Changes sync in real time for everyone.
         </p>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-sage-50 border border-sage-100">
-            <div className={`h-2 w-2 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-sage-300'}`} />
-            <span className="text-[10px] font-medium uppercase tracking-wider text-sage-500">
-              {isLive ? 'Live Sync' : 'Offline'}
-            </span>
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+          <AddShoppingItem weekStartStr={weekStartStr} />
+          <div className="flex items-center justify-between gap-4 sm:justify-end">
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-sage-50 border border-sage-100">
+              <div className={`h-2 w-2 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-sage-300'}`} />
+              <span className="text-[10px] font-medium uppercase tracking-wider text-sage-500">
+                {isLive ? 'Live Sync' : 'Offline'}
+              </span>
+            </div>
+            <button
+              onClick={handleManualRefresh}
+              disabled={isRefreshing}
+              className="btn-secondary text-sm py-1.5"
+            >
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            </button>
           </div>
-          <button
-            onClick={handleManualRefresh}
-            disabled={isRefreshing}
-            className="btn-secondary text-sm py-1.5"
-          >
-            {isRefreshing ? 'Refreshing...' : 'Refresh from Plan'}
-          </button>
         </div>
       </div>
 
