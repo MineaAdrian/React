@@ -118,7 +118,7 @@ export async function syncShoppingList(weekStartStr: string) {
     });
 
     if (recipeIds.size > 0) {
-      const dbRecipes: any[] = await prisma.recipe.findMany({
+      const dbRecipes = await prisma.recipe.findMany({
         where: { id: { in: [...recipeIds] } },
       });
       for (const r of dbRecipes) {
