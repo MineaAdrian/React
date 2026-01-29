@@ -177,7 +177,7 @@ export async function syncShoppingList(weekStartStr: string) {
   // 2. Aggregate
   const aggregated = aggregateIngredients(days, recipeMap);
 
-  // 3. Get existing to preserve checked status
+  // 3. Get existing to preserve checked status and identify deletions
   const currentList = await getShoppingList(weekStartStr);
   const existingByKey = new Map(
     currentList.items.map(item => [`${item.ingredient_name}|${item.unit}`, item])
@@ -192,20 +192,48 @@ export async function syncShoppingList(weekStartStr: string) {
     };
   });
 
-  // 4. Batch Upsert via Supabase (Prisma doesn't do bulk upsert easily)
-  const supabase = await createClient();
-  const upsertData = itemsToUpsert.map(item => ({
-    family_id: familyId,
-    week_start: weekStartStr,
-    ingredient_name: item.ingredient_name,
-    total_quantity: item.total_quantity,
-    unit: item.unit,
-    checked: item.checked,
-    checked_by: item.checked_by,
-    recipe_ids: item.recipe_ids,
-  }));
+  // Identify items to delete:
+  // These are items that EXIST in the DB, have recipe_ids (not manual),
+  // but are NOT in the new aggregated list.
+  const newAggregatedKeys = new Set(aggregated.map(item => `${item.ingredient_name}|${item.unit}`));
+  const itemsToDelete = currentList.items.filter(item => {
+    const key = `${item.ingredient_name}|${item.unit}`;
+    const isManual = item.recipe_ids.length === 0;
+    return !isManual && !newAggregatedKeys.has(key);
+  });
 
-  if (upsertData.length > 0) {
+  // 4. Execute changes via Supabase
+  const supabase = await createClient();
+
+  // Deletions
+  if (itemsToDelete.length > 0) {
+    // We need to delete by multiple criteria, but since we have the keys...
+    // simpler to loop or use a complex filter if supported. 
+    // Supabase .in() works well for multiple values.
+    for (const item of itemsToDelete) {
+      await supabase
+        .from("shopping_items")
+        .delete()
+        .eq("family_id", familyId)
+        .eq("week_start", weekStartStr)
+        .eq("ingredient_name", item.ingredient_name)
+        .eq("unit", item.unit);
+    }
+  }
+
+  // Upserts
+  if (itemsToUpsert.length > 0) {
+    const upsertData = itemsToUpsert.map(item => ({
+      family_id: familyId,
+      week_start: weekStartStr,
+      ingredient_name: item.ingredient_name,
+      total_quantity: item.total_quantity,
+      unit: item.unit,
+      checked: item.checked,
+      checked_by: item.checked_by,
+      recipe_ids: item.recipe_ids,
+    }));
+
     const { error } = await supabase
       .from("shopping_items")
       .upsert(upsertData, {

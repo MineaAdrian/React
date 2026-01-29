@@ -94,6 +94,11 @@ export async function assignMeal(
       where: { id: plan.id },
       data: { days: updatedDays as unknown as object },
     });
+
+    // Automatically sync shopping list
+    const { syncShoppingList } = await import("./shopping");
+    await syncShoppingList(weekStartStr);
+
     return { ok: true };
   } catch (e) {
     if (typeof e === "object" && e !== null && "message" in e && (e as Error).message === "Week plan not found") throw e;
@@ -125,6 +130,11 @@ export async function assignMeal(
       .update({ days: updatedDays, updated_at: new Date().toISOString() })
       .eq("id", plan.id);
     if (updateErr) throw updateErr;
+
+    // Automatically sync shopping list
+    const { syncShoppingList } = await import("./shopping");
+    await syncShoppingList(weekStartStr);
+
     return { ok: true };
   }
 }

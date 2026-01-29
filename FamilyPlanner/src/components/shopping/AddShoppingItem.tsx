@@ -37,7 +37,7 @@ export function AddShoppingItem({ weekStartStr }: AddShoppingItemProps) {
         return (
             <button
                 onClick={() => setIsOpen(true)}
-                className="btn-primary flex items-center gap-2"
+                className="btn-secondary flex items-center gap-2"
             >
                 <span>+</span> Add manual item
             </button>
