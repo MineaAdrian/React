@@ -94,10 +94,13 @@ export async function assignMeal(
       where: { id: plan.id },
       data: { days: updatedDays as unknown as object },
     });
-
-    // Automatically sync shopping list
-    const { syncShoppingList } = await import("./shopping");
-    await syncShoppingList(weekStartStr);
+    // Automatically sync shopping list (non-blocking)
+    try {
+      const { syncShoppingList } = await import("./shopping");
+      await syncShoppingList(weekStartStr);
+    } catch (syncErr) {
+      console.error("Shopping list sync failed (non-critical):", syncErr);
+    }
 
     return { ok: true };
   } catch (e) {
@@ -130,10 +133,13 @@ export async function assignMeal(
       .update({ days: updatedDays, updated_at: new Date().toISOString() })
       .eq("id", plan.id);
     if (updateErr) throw updateErr;
-
-    // Automatically sync shopping list
-    const { syncShoppingList } = await import("./shopping");
-    await syncShoppingList(weekStartStr);
+    // Automatically sync shopping list (non-blocking)
+    try {
+      const { syncShoppingList } = await import("./shopping");
+      await syncShoppingList(weekStartStr);
+    } catch (syncErr) {
+      console.error("Shopping list sync failed (non-critical):", syncErr);
+    }
 
     return { ok: true };
   }

@@ -20,15 +20,27 @@ function aggregateIngredients(days: DayPlan[], recipeMap: Map<string, Recipe>): 
         const recipe = recipeMap.get(rid);
         if (!recipe?.ingredients) continue;
         for (const ing of recipe.ingredients) {
+          // Ensure quantity is always a number (handle malformed data)
+          let quantity = 0;
+          if (typeof ing.quantity === 'number') {
+            quantity = ing.quantity;
+          } else if (typeof ing.quantity === 'string') {
+            const parsed = parseFloat(ing.quantity);
+            if (!isNaN(parsed)) {
+              quantity = parsed;
+            } else {
+              console.warn(`[aggregateIngredients] Invalid quantity for ingredient "${ing.name}": "${ing.quantity}". Using 0.`);
+            }
+          }
+
           const k = `${ing.name.toLowerCase().trim()}|${ing.unit}`;
           const cur = map.get(k);
-          const q = ing.quantity ?? 0;
           if (cur) {
-            cur.quantity += q;
+            cur.quantity += quantity;
             cur.recipeIds.add(rid);
           } else {
             map.set(k, {
-              quantity: q,
+              quantity,
               unit: ing.unit,
               recipeIds: new Set([rid]),
             });
@@ -92,90 +104,85 @@ export async function getShoppingList(weekStartStr: string): Promise<{ week_star
 }
 
 export async function syncShoppingList(weekStartStr: string) {
+  console.log("[syncShoppingList] Starting sync for week:", weekStartStr);
+
   const { familyId } = await getCurrentUserAndFamily();
-  if (!familyId) throw new Error("No family found");
+  if (!familyId) {
+    console.warn("[syncShoppingList] No family found, skipping sync");
+    return { week_start: weekStartStr, items: [] };
+  }
+  console.log("[syncShoppingList] Family ID:", familyId);
 
   const weekStart = new Date(weekStartStr);
 
-  // 1. Get Plan and Recipes
+  // 1. Get Plan and Recipes - Use Supabase directly for consistency
+  // (Recipes are created via Supabase, so we should read from Supabase too)
   let days: DayPlan[] = [];
   const recipeMap = new Map<string, Recipe>();
 
-  try {
-    const plan = await prisma.weekPlan.findUnique({
-      where: { familyId_startDate: { familyId, startDate: weekStart } },
-      select: { days: true },
-    });
-    days = (plan?.days as unknown as DayPlan[]) ?? [];
+  const supabase = await createClient();
 
-    const recipeIds = new Set<string>();
-    days.forEach(d => {
-      MEAL_KEYS.forEach(key => {
-        (d.meals[key] ?? []).forEach(slot => {
-          if (slot.recipe_id) recipeIds.add(slot.recipe_id);
-        });
+  // Fetch week plan from Supabase
+  const { data: plan, error: planError } = await supabase
+    .from("week_plans")
+    .select("days")
+    .eq("family_id", familyId)
+    .eq("start_date", weekStartStr)
+    .maybeSingle();
+
+  if (planError) {
+    console.error("[syncShoppingList] Error fetching week plan:", planError);
+  }
+
+  days = (plan?.days as DayPlan[]) ?? [];
+  console.log("[syncShoppingList] Found", days.length, "days in plan");
+
+  // Extract recipe IDs from the plan
+  const recipeIds = new Set<string>();
+  days.forEach(d => {
+    if (!d.meals) return;
+    MEAL_KEYS.forEach(key => {
+      (d.meals[key] ?? []).forEach(slot => {
+        if (slot.recipe_id) recipeIds.add(slot.recipe_id);
       });
     });
+  });
+  console.log("[syncShoppingList] Recipe IDs in plan:", Array.from(recipeIds));
 
-    if (recipeIds.size > 0) {
-      const dbRecipes = await prisma.recipe.findMany({
-        where: { id: { in: [...recipeIds] } },
-      });
-      for (const r of dbRecipes) {
-        recipeMap.set(r.id, {
-          id: r.id,
-          name: r.name,
-          meal_type: r.mealType as MealType,
-          ingredients: (r.ingredients as unknown as Recipe["ingredients"]) ?? [],
-          instructions: r.instructions ?? "",
-          family_id: r.familyId,
-          created_by: r.userId,
-          created_at: r.createdAt.toISOString(),
-        });
-      }
+  // Fetch recipes from Supabase
+  if (recipeIds.size > 0) {
+    const { data: dbRecipes, error: recipeError } = await supabase
+      .from("recipes")
+      .select("*")
+      .in("id", Array.from(recipeIds));
+
+    if (recipeError) {
+      console.error("[syncShoppingList] Error fetching recipes:", recipeError);
     }
-  } catch (err) {
-    console.error("Aggregation via Prisma failed, falling back to Supabase", err);
-    const supabase = await createClient();
-    const { data: plan } = await supabase
-      .from("week_plans")
-      .select("days")
-      .eq("family_id", familyId)
-      .eq("start_date", weekStartStr)
-      .single();
-    days = (plan?.days as DayPlan[]) ?? [];
 
-    const recipeIds = new Set<string>();
-    days.forEach(d => {
-      MEAL_KEYS.forEach(key => {
-        (d.meals[key] ?? []).forEach(slot => {
-          if (slot.recipe_id) recipeIds.add(slot.recipe_id);
-        });
+    console.log("[syncShoppingList] Found", dbRecipes?.length ?? 0, "recipes");
+
+    (dbRecipes ?? []).forEach(r => {
+      console.log("[syncShoppingList] Recipe", r.name, "has", r.ingredients?.length ?? 0, "ingredients");
+      recipeMap.set(r.id, {
+        id: r.id,
+        name: r.name,
+        meal_type: r.meal_type,
+        ingredients: r.ingredients ?? [],
+        instructions: r.instructions ?? "",
+        family_id: r.family_id,
+        created_by: r.user_id ?? null,
+        created_at: r.created_at,
       });
     });
-
-    if (recipeIds.size > 0) {
-      const { data: dbRecipes } = await supabase
-        .from("recipes")
-        .select("*")
-        .in("id", Array.from(recipeIds));
-      (dbRecipes ?? []).forEach(r => {
-        recipeMap.set(r.id, {
-          id: r.id,
-          name: r.name,
-          meal_type: r.meal_type,
-          ingredients: r.ingredients ?? [],
-          instructions: r.instructions ?? "",
-          family_id: r.family_id,
-          created_by: r.user_id ?? null,
-          created_at: r.created_at,
-        });
-      });
-    }
   }
 
   // 2. Aggregate
   const aggregated = aggregateIngredients(days, recipeMap);
+  console.log("[syncShoppingList] Aggregated", aggregated.length, "ingredients");
+  if (aggregated.length > 0) {
+    console.log("[syncShoppingList] Sample:", aggregated[0]);
+  }
 
   // 3. Get existing to preserve checked status and identify deletions
   const currentList = await getShoppingList(weekStartStr);
@@ -202,44 +209,64 @@ export async function syncShoppingList(weekStartStr: string) {
     return !isManual && !newAggregatedKeys.has(key);
   });
 
-  // 4. Execute changes via Supabase
-  const supabase = await createClient();
+  console.log("[syncShoppingList] Items to upsert:", itemsToUpsert.length, "| Items to delete:", itemsToDelete.length);
+
+  // 4. Execute changes via Supabase (reuse client from above)
 
   // Deletions
   if (itemsToDelete.length > 0) {
-    // We need to delete by multiple criteria, but since we have the keys...
-    // simpler to loop or use a complex filter if supported. 
-    // Supabase .in() works well for multiple values.
     for (const item of itemsToDelete) {
-      await supabase
-        .from("shopping_items")
-        .delete()
-        .eq("family_id", familyId)
-        .eq("week_start", weekStartStr)
-        .eq("ingredient_name", item.ingredient_name)
-        .eq("unit", item.unit);
+      try {
+        await supabase
+          .from("shopping_items")
+          .delete()
+          .eq("family_id", familyId)
+          .eq("week_start", weekStartStr)
+          .eq("ingredient_name", item.ingredient_name)
+          .eq("unit", item.unit);
+      } catch (delErr) {
+        console.warn("Failed to delete shopping item:", item.ingredient_name, delErr);
+      }
     }
   }
 
   // Upserts
   if (itemsToUpsert.length > 0) {
-    const upsertData = itemsToUpsert.map(item => ({
-      family_id: familyId,
-      week_start: weekStartStr,
-      ingredient_name: item.ingredient_name,
-      total_quantity: item.total_quantity,
-      unit: item.unit,
-      checked: item.checked,
-      checked_by: item.checked_by,
-      recipe_ids: item.recipe_ids,
-    }));
+    const upsertData = itemsToUpsert
+      .map(item => {
+        // Ensure total_quantity is a valid number
+        const quantity = typeof item.total_quantity === 'number'
+          ? item.total_quantity
+          : parseFloat(String(item.total_quantity));
+
+        if (isNaN(quantity)) {
+          console.warn(`[syncShoppingList] Skipping item with invalid quantity: ${item.ingredient_name} - ${item.total_quantity}`);
+          return null;
+        }
+
+        return {
+          family_id: familyId,
+          week_start: weekStartStr,
+          ingredient_name: item.ingredient_name,
+          total_quantity: quantity,
+          unit: item.unit,
+          checked: item.checked,
+          checked_by: item.checked_by,
+          recipe_ids: item.recipe_ids,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
 
     const { error } = await supabase
       .from("shopping_items")
       .upsert(upsertData, {
         onConflict: "family_id,week_start,ingredient_name,unit"
       });
-    if (error) throw error;
+    if (error) {
+      console.error("[syncShoppingList] Upsert error:", error);
+    } else {
+      console.log("[syncShoppingList] Upsert successful!");
+    }
   }
 
   return getShoppingList(weekStartStr);
