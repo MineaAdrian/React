@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import Image from "next/image";
 import { getRecipes, createRecipe, uploadRecipePhoto, updateRecipe, reportRecipe } from "@/app/actions/recipes";
 import { RecipeCard } from "@/components/recipes/RecipeCard";
 import { MEAL_LABELS } from "@/lib/week";
@@ -241,7 +240,7 @@ export function RecipesPageClient({ familyId }: Props) {
                   </button>
                   {photoUrl && (
                     <div className="relative h-16 w-16 overflow-hidden rounded-xl shadow-sm border border-sage-200">
-                      <Image src={photoUrl} alt="Preview" fill className="object-cover" />
+                      <img src={photoUrl} alt="Preview" className="absolute inset-0 h-full w-full object-cover" />
                       <button
                         type="button"
                         onClick={() => setPhotoUrl("")}

@@ -1,5 +1,4 @@
 import { clsx } from "clsx";
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import type { Recipe } from "@/types";
 
@@ -43,11 +42,10 @@ export function RecipeCard({ recipe, currentUserId, onSelect, onEdit, onReport, 
       {!compact && (
         <div className="relative h-44 w-full overflow-hidden rounded-t-lg bg-gradient-to-br from-amber-100 via-orange-100 to-rose-100">
           {recipe.photo_url ? (
-            <Image
+            <img
               src={recipe.photo_url}
               alt={recipe.name}
-              fill
-              className="object-cover transition-transform duration-500 group-hover:scale-110"
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-5xl grayscale-[0.3] group-hover:grayscale-0 transition-all">
