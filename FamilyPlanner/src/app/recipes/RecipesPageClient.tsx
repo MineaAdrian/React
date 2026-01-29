@@ -15,10 +15,13 @@ export function RecipesPageClient({ familyId }: Props) {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [name, setName] = useState("");
   const [mealType, setMealType] = useState<MealType>("dinner");
   const [instructions, setInstructions] = useState("");
-  const [ingredientsText, setIngredientsText] = useState("");
+  const [ingredients, setIngredients] = useState<{ name: string; quantity: number | string; unit: string }[]>([
+    { name: "", quantity: 1, unit: "pcs/g/ml/l" }
+  ]);
   const [photoUrl, setPhotoUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
@@ -38,11 +41,7 @@ export function RecipesPageClient({ familyId }: Props) {
     setMealType(recipe.meal_type);
     setInstructions(recipe.instructions);
     setIsFamilyOnly(!!recipe.family_id);
-    setIngredientsText(
-      recipe.ingredients
-        .map((ing) => `${ing.name} ${ing.quantity} ${ing.unit}`)
-        .join("\n")
-    );
+    setIngredients(recipe.ingredients.map(ing => ({ ...ing })));
     setPhotoUrl(recipe.photo_url || "");
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -64,7 +63,7 @@ export function RecipesPageClient({ familyId }: Props) {
     setName("");
     setMealType("dinner");
     setInstructions("");
-    setIngredientsText("");
+    setIngredients([{ name: "", quantity: 1, unit: "pcs" }]);
     setPhotoUrl("");
     setIsFamilyOnly(true);
   };
@@ -89,23 +88,20 @@ export function RecipesPageClient({ familyId }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const ingredients = ingredientsText
-      .split("\n")
-      .filter(Boolean)
-      .map((line) => {
-        const match = line.match(/^(.+?)\s+(\d+(?:\.\d+)?)\s*(\w*)$/);
-        if (match) {
-          return { name: match[1].trim(), quantity: parseFloat(match[2]), unit: match[3] || "pcs" };
-        }
-        return { name: line.trim(), quantity: 1, unit: "pcs" };
-      });
+    const cleanedIngredients = ingredients
+      .filter(ing => ing.name.trim() !== "")
+      .map(ing => ({
+        name: ing.name.trim(),
+        quantity: typeof ing.quantity === 'string' ? parseFloat(ing.quantity) || 0 : ing.quantity,
+        unit: ing.unit.trim() || "pcs"
+      }));
 
     const targetFamilyId = isFamilyOnly && familyId ? familyId : null;
 
     if (editingRecipeId) {
-      await updateRecipe(editingRecipeId, name, mealType, ingredients, instructions, photoUrl, targetFamilyId);
+      await updateRecipe(editingRecipeId, name, mealType, cleanedIngredients, instructions, photoUrl, targetFamilyId);
     } else {
-      await createRecipe(name, mealType, ingredients, instructions, targetFamilyId, photoUrl);
+      await createRecipe(name, mealType, cleanedIngredients, instructions, targetFamilyId, photoUrl);
     }
 
     handleCancel();
@@ -119,6 +115,19 @@ export function RecipesPageClient({ familyId }: Props) {
       </div>
     );
   }
+
+  // Filter recipes based on search query
+  const filteredRecipes = recipes.filter((recipe) => {
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return true;
+
+    const nameMatch = recipe.name.toLowerCase().includes(query);
+    const ingredientMatch = recipe.ingredients?.some(
+      (ing) => ing.name.toLowerCase().includes(query)
+    );
+
+    return nameMatch || ingredientMatch;
+  });
 
   return (
     <div className="space-y-6">
@@ -138,6 +147,32 @@ export function RecipesPageClient({ familyId }: Props) {
           {showForm ? "Cancel" : "Add New Recipe"}
         </button>
       </div>
+
+      {/* Search Bar */}
+      {!showForm && recipes.length > 0 && (
+        <div className="relative">
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search recipes by name or ingredient..."
+            className="input pl-10"
+          />
+          <svg
+            className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-sage-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+        </div>
+      )}
 
       {showForm && (
         <form onSubmit={handleSubmit} className="card space-y-6 p-8 border-2 border-sage-100 shadow-xl shadow-sage-900/5 animate-in fade-in slide-in-from-top-4 duration-300">
@@ -192,31 +227,6 @@ export function RecipesPageClient({ familyId }: Props) {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-sage-700 mb-1">
-                  Ingredients (one per line: name quantity unit)
-                </label>
-                <textarea
-                  value={ingredientsText}
-                  onChange={(e) => setIngredientsText(e.target.value)}
-                  rows={6}
-                  className="input font-mono text-sm"
-                  placeholder="Tomatoes 2 pcs"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-sage-700 mb-1">Instructions</label>
-                <textarea
-                  value={instructions}
-                  onChange={(e) => setInstructions(e.target.value)}
-                  rows={4}
-                  className="input"
-                  placeholder="Steps..."
-                />
-              </div>
-              <div>
                 <label className="block text-sm font-medium text-sage-700 mb-1">Recipe Photo</label>
                 <div className="flex items-center gap-4">
                   <input
@@ -262,6 +272,102 @@ export function RecipesPageClient({ familyId }: Props) {
                 </div>
               </div>
             </div>
+
+            <div className="flex flex-col">
+              <label className="block text-sm font-medium text-sage-700 mb-1">Instructions</label>
+              <textarea
+                value={instructions}
+                onChange={(e) => setInstructions(e.target.value)}
+                className="input flex-grow min-h-[14rem] resize-none"
+                placeholder="Step 1: Boill water...
+Step 2: Add pasta..."
+              />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-sage-700">Ingredients</label>
+              <button
+                type="button"
+                onClick={() => setIngredients([...ingredients, { name: "", quantity: 1, unit: "pcs/g/ml/l" }])}
+                className="text-xs font-bold text-sage-600 hover:text-sage-800 transition-colors flex items-center gap-1"
+              >
+                <span>➕ Add Item</span>
+              </button>
+            </div>
+            <div className="overflow-x-auto rounded-2xl border border-sage-100 bg-white/50">
+              <table className="w-full text-left text-sm font-mono">
+                <thead className="bg-sage-50/50 text-[10px] font-black uppercase tracking-widest text-sage-500">
+                  <tr>
+                    <th className="px-4 py-3">Ingredient Name</th>
+                    <th className="px-4 py-3 w-24">Qty</th>
+                    <th className="px-4 py-3 w-24">Unit</th>
+                    <th className="px-4 py-3 w-10"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-sage-50">
+                  {ingredients.map((ing, idx) => (
+                    <tr key={idx} className="group hover:bg-sage-50/30 transition-colors">
+                      <td className="px-4 py-2">
+                        <input
+                          type="text"
+                          value={ing.name}
+                          onChange={(e) => {
+                            const newIngs = [...ingredients];
+                            newIngs[idx].name = e.target.value;
+                            setIngredients(newIngs);
+                          }}
+                          placeholder="e.g. Flour"
+                          className="w-full bg-transparent border-none focus:ring-0 p-0 text-sage-800 placeholder:text-sage-300"
+                        />
+                      </td>
+                      <td className="px-4 py-2">
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={ing.quantity}
+                          onChange={(e) => {
+                            const newIngs = [...ingredients];
+                            newIngs[idx].quantity = e.target.value;
+                            setIngredients(newIngs);
+                          }}
+                          className="w-full bg-transparent border-none focus:ring-0 p-0 text-sage-800 placeholder:text-sage-300"
+                        />
+                      </td>
+                      <td className="px-4 py-2">
+                        <input
+                          type="text"
+                          value={ing.unit}
+                          onChange={(e) => {
+                            const newIngs = [...ingredients];
+                            newIngs[idx].unit = e.target.value;
+                            setIngredients(newIngs);
+                          }}
+                          placeholder="g"
+                          className="w-full bg-transparent border-none focus:ring-0 p-0 text-sage-800 placeholder:text-sage-300 uppercase text-[10px] font-bold tracking-wider"
+                        />
+                      </td>
+                      <td className="px-4 py-2 text-right">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (ingredients.length > 1) {
+                              setIngredients(ingredients.filter((_, i) => i !== idx));
+                            } else {
+                              setIngredients([{ name: "", quantity: 1, unit: "pcs" }]);
+                            }
+                          }}
+                          className="opacity-0 group-hover:opacity-100 text-red-300 hover:text-red-500 transition-all p-1"
+                        >
+                          ✕
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <button type="submit" className="btn-primary w-full py-4 text-base font-bold shadow-lg shadow-sage-900/10" disabled={isUploading}>
@@ -271,7 +377,7 @@ export function RecipesPageClient({ familyId }: Props) {
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {recipes.map((recipe) => (
+        {filteredRecipes.map((recipe) => (
           <RecipeCard
             key={recipe.id}
             recipe={recipe}
@@ -282,6 +388,13 @@ export function RecipesPageClient({ familyId }: Props) {
           />
         ))}
       </div>
+
+      {searchQuery && filteredRecipes.length === 0 && (
+        <div className="card p-12 text-center border-2 border-dashed border-sage-200">
+          <div className="text-4xl mb-4">🔍</div>
+          <p className="text-sage-500 font-medium">No recipes found matching "{searchQuery}"</p>
+        </div>
+      )}
       {recipes.length === 0 && !showForm && (
         <div className="card p-12 text-center border-2 border-dashed border-sage-200">
           <div className="text-4xl mb-4">📖</div>
