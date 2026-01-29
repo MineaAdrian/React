@@ -118,10 +118,10 @@ export async function syncShoppingList(weekStartStr: string) {
     });
 
     if (recipeIds.size > 0) {
-      const dbRecipes = await prisma.recipe.findMany({
-        where: { id: { in: Array.from(recipeIds) } },
+      const dbRecipes: any[] = await prisma.recipe.findMany({
+        where: { id: { in: [...recipeIds] } },
       });
-      dbRecipes.forEach(r => {
+      for (const r of dbRecipes) {
         recipeMap.set(r.id, {
           id: r.id,
           name: r.name,
@@ -132,7 +132,7 @@ export async function syncShoppingList(weekStartStr: string) {
           created_by: r.userId,
           created_at: r.createdAt.toISOString(),
         });
-      });
+      }
     }
   } catch (err) {
     console.error("Aggregation via Prisma failed, falling back to Supabase", err);
