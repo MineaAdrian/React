@@ -16,6 +16,7 @@ export function RecipesPageClient({ familyId }: Props) {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterMyRecipes, setFilterMyRecipes] = useState(false);
   const [name, setName] = useState("");
   const [mealType, setMealType] = useState<MealType>("dinner");
   const [instructions, setInstructions] = useState("");
@@ -119,14 +120,16 @@ export function RecipesPageClient({ familyId }: Props) {
   // Filter recipes based on search query
   const filteredRecipes = recipes.filter((recipe) => {
     const query = searchQuery.toLowerCase().trim();
-    if (!query) return true;
+    const isMyRecipe = filterMyRecipes ? recipe.created_by === profile?.id : true;
+
+    if (!query) return isMyRecipe;
 
     const nameMatch = recipe.name.toLowerCase().includes(query);
     const ingredientMatch = recipe.ingredients?.some(
       (ing) => ing.name.toLowerCase().includes(query)
     );
 
-    return nameMatch || ingredientMatch;
+    return (nameMatch || ingredientMatch) && isMyRecipe;
   });
 
   return (
@@ -148,29 +151,43 @@ export function RecipesPageClient({ familyId }: Props) {
         </button>
       </div>
 
-      {/* Search Bar */}
+      {/* Search and Filters */}
       {!showForm && recipes.length > 0 && (
-        <div className="relative">
-          <input
-            type="search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search recipes by name or ingredient..."
-            className="input pl-10"
-          />
-          <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-sage-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+        <div className="flex flex-col gap-4 sm:flex-row">
+          <div className="relative flex-1">
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search recipes by name or ingredient..."
+              className="input pl-10"
             />
-          </svg>
+            <svg
+              className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-sage-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
+          <div className="flex items-center gap-2 px-4 py-2 bg-sage-50 rounded-xl border border-sage-100 shrink-0">
+            <input
+              id="filter-my-recipes"
+              type="checkbox"
+              checked={filterMyRecipes}
+              onChange={(e) => setFilterMyRecipes(e.target.checked)}
+              className="w-5 h-5 rounded-lg border-sage-300 text-sage-600 focus:ring-sage-500 cursor-pointer"
+            />
+            <label htmlFor="filter-my-recipes" className="text-xs font-bold text-sage-600 uppercase tracking-wider cursor-pointer select-none">
+              My Recipes
+            </label>
+          </div>
         </div>
       )}
 

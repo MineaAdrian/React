@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { isSameDay } from "date-fns";
 import { getWeekPlan } from "@/app/actions/week";
 import { getRecipes } from "@/app/actions/recipes";
 import { useWeekStore } from "@/store/weekStore";
@@ -16,8 +17,26 @@ export function WeekCalendar() {
   const { weekStart, weekStartStr, setWeek } = useWeekStore();
   const [plan, setPlan] = useState<{ id: string; days: DayPlan[] } | null>(null);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date>(getWeekDates(weekStart)[0]);
+  const [selectedDate, setSelectedDate] = useState<Date>(() => {
+    const today = new Date();
+    const dates = getWeekDates(weekStart);
+    const todayInWeek = dates.find((d) => isSameDay(d, today));
+    return todayInWeek || dates[0];
+  });
   const [loading, setLoading] = useState(true);
+
+  // Update selected date when week changes
+  useEffect(() => {
+    const dates = getWeekDates(weekStart);
+    const today = new Date();
+    const todayInWeek = dates.find((d) => isSameDay(d, today));
+
+    if (todayInWeek) {
+      setSelectedDate(todayInWeek);
+    } else {
+      setSelectedDate(dates[0]);
+    }
+  }, [weekStartStr]);
 
   useEffect(() => {
     setLoading(true);
