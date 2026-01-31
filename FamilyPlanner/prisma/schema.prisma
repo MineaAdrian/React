@@ -46,9 +46,12 @@ model Recipe {
   familyId           String?  @map("family_id") @db.Uuid
   userId             String?  @map("user_id") @db.Uuid
   name               String
+  nameRo             String?  @map("name_ro")
   mealType           String   @map("meal_type") // breakfast | lunch | dinner | togo | dessert
   ingredients        Json     @default("[]")
+  ingredientsRo      Json?    @map("ingredients_ro")
   instructions       String   @default("")
+  instructionsRo     String?  @map("instructions_ro")
   cookingTimeMinutes Int?     @map("cooking_time_minutes")
   difficulty         String?  // easy | medium | hard
   tags               String[] @default([])
@@ -81,6 +84,7 @@ model ShoppingItem {
   familyId       String   @map("family_id") @db.Uuid
   weekStart      DateTime @map("week_start") @db.Date
   ingredientName String   @map("ingredient_name")
+  ingredientNameRo String? @map("ingredient_name_ro")
   totalQuantity  Decimal  @map("total_quantity") @db.Decimal
   unit           String   @default("pcs")
   checked        Boolean  @default(false)

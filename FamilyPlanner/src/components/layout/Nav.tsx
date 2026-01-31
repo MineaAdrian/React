@@ -5,17 +5,19 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { signOut } from "@/app/actions/auth";
 import { clsx } from "clsx";
-
-const links = [
-  { href: "/week", label: "Week Menu" },
-  { href: "/recipes", label: "Recipes" },
-  { href: "/settings", label: "Settings" },
-  { href: "/shopping-list", label: "Shopping List" },
-];
+import { useTranslation } from "@/hooks/useTranslation";
 
 export function Nav() {
   const pathname = usePathname();
   const { profile } = useAuth();
+  const { t, language, setLanguage } = useTranslation();
+
+  const links = [
+    { href: "/week", label: t("nav_menu") },
+    { href: "/recipes", label: t("nav_recipes") },
+    { href: "/shopping-list", label: t("nav_shopping") },
+    { href: "/settings", label: t("nav_profile") },
+  ];
 
   if (pathname === "/login" || pathname === "/register") return null;
 
@@ -28,9 +30,29 @@ export function Nav() {
             Family Planner
           </Link>
           <div className="flex items-center gap-2 md:hidden">
+            <div className="flex bg-sage-50 rounded-lg p-0.5 border border-sage-100">
+              <button
+                onClick={() => setLanguage("en")}
+                className={clsx(
+                  "px-2 py-1 text-[10px] font-bold rounded",
+                  language === "en" ? "bg-white shadow-sm text-sage-800" : "text-sage-400"
+                )}
+              >
+                EN
+              </button>
+              <button
+                onClick={() => setLanguage("ro")}
+                className={clsx(
+                  "px-2 py-1 text-[10px] font-bold rounded",
+                  language === "ro" ? "bg-white shadow-sm text-sage-800" : "text-sage-400"
+                )}
+              >
+                RO
+              </button>
+            </div>
             <form action={signOut}>
               <button type="submit" className="text-sm font-medium text-sage-600 hover:text-sage-800">
-                Sign out
+                {t("nav_signout")}
               </button>
             </form>
           </div>
@@ -56,10 +78,30 @@ export function Nav() {
 
         {/* Desktop only: Profile and Sign out */}
         <div className="hidden items-center gap-4 md:flex">
+          <div className="flex bg-sage-50 rounded-xl p-1 border border-sage-100">
+            <button
+              onClick={() => setLanguage("en")}
+              className={clsx(
+                "px-3 py-1 text-xs font-bold rounded-lg transition-all",
+                language === "en" ? "bg-white shadow-md text-sage-800" : "text-sage-400 hover:text-sage-600"
+              )}
+            >
+              EN
+            </button>
+            <button
+              onClick={() => setLanguage("ro")}
+              className={clsx(
+                "px-3 py-1 text-xs font-bold rounded-lg transition-all",
+                language === "ro" ? "bg-white shadow-md text-sage-800" : "text-sage-400 hover:text-sage-600"
+              )}
+            >
+              RO
+            </button>
+          </div>
           <span className="text-sm text-sage-600">{profile?.name || profile?.email}</span>
           <form action={signOut}>
             <button type="submit" className="btn-ghost text-sm">
-              Sign out
+              {t("nav_signout")}
             </button>
           </form>
         </div>

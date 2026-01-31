@@ -3,6 +3,13 @@
 import { format, isSameDay } from "date-fns";
 import { toDateString } from "@/lib/week";
 import { clsx } from "clsx";
+import { useTranslation } from "@/hooks/useTranslation";
+import { enUS, ro } from "date-fns/locale";
+
+const locales = {
+  en: enUS,
+  ro: ro,
+};
 
 interface DaySelectorProps {
   weekDates: Date[];
@@ -11,6 +18,7 @@ interface DaySelectorProps {
 }
 
 export function DaySelector({ weekDates, selectedDate, onSelect }: DaySelectorProps) {
+  const { language } = useTranslation();
   const today = new Date();
   const todayStr = toDateString(today);
 
@@ -41,7 +49,7 @@ export function DaySelector({ weekDates, selectedDate, onSelect }: DaySelectorPr
                 "text-[0.65rem] uppercase font-bold tracking-wider sm:text-xs sm:font-medium",
                 isSelected ? "text-white/90" : "text-sage-500"
               )}>
-                {format(date, "EEE")}
+                {format(date, "EEE", { locale: locales[language] })}
               </div>
               <div className="text-xl font-bold sm:text-lg sm:font-normal">
                 {format(date, "d")}

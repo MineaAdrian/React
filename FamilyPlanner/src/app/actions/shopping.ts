@@ -9,7 +9,7 @@ import type { MealType } from "@/types";
 const MEAL_KEYS: MealType[] = ["breakfast", "lunch", "dinner", "togo", "dessert"];
 
 function aggregateIngredients(days: DayPlan[], recipeMap: Map<string, Recipe>): ShoppingItem[] {
-  const map = new Map<string, { quantity: number; unit: string; recipeIds: Set<string> }>();
+  const map = new Map<string, { quantity: number; unit: string; recipeIds: Set<string>; nameRo?: string }>();
 
   for (const day of days) {
     for (const key of MEAL_KEYS) {
@@ -19,7 +19,17 @@ function aggregateIngredients(days: DayPlan[], recipeMap: Map<string, Recipe>): 
         if (!rid) continue;
         const recipe = recipeMap.get(rid);
         if (!recipe?.ingredients) continue;
-        for (const ing of recipe.ingredients) {
+
+        // Use a helper to get the Romanian name if available
+        const getRoName = (index: number, ing: any) => {
+          if (ing.name_ro) return ing.name_ro;
+          if (recipe.ingredients_ro && Array.isArray(recipe.ingredients_ro)) {
+            return recipe.ingredients_ro[index]?.name;
+          }
+          return undefined;
+        };
+
+        recipe.ingredients.forEach((ing, index) => {
           // Ensure quantity is always a number (handle malformed data)
           let quantity = 0;
           if (typeof ing.quantity === 'number') {
@@ -33,19 +43,22 @@ function aggregateIngredients(days: DayPlan[], recipeMap: Map<string, Recipe>): 
             }
           }
 
+          const roName = getRoName(index, ing);
           const k = `${ing.name.toLowerCase().trim()}|${ing.unit}`;
           const cur = map.get(k);
           if (cur) {
             cur.quantity += quantity;
             cur.recipeIds.add(rid);
+            if (!cur.nameRo && roName) cur.nameRo = roName;
           } else {
             map.set(k, {
               quantity,
               unit: ing.unit,
               recipeIds: new Set([rid]),
+              nameRo: roName,
             });
           }
-        }
+        });
       }
     }
   }
@@ -54,6 +67,7 @@ function aggregateIngredients(days: DayPlan[], recipeMap: Map<string, Recipe>): 
     const [ingredient_name] = k.split("|");
     return {
       ingredient_name,
+      ingredient_name_ro: v.nameRo,
       total_quantity: v.quantity,
       unit: v.unit,
       checked: false,
@@ -66,6 +80,7 @@ function aggregateIngredients(days: DayPlan[], recipeMap: Map<string, Recipe>): 
 function rowToItemFromSupabase(row: Record<string, unknown>): ShoppingItem {
   return {
     ingredient_name: row.ingredient_name as string,
+    ingredient_name_ro: row.ingredient_name_ro as string | undefined,
     total_quantity: Number(row.total_quantity),
     unit: row.unit as string,
     checked: row.checked as boolean,
@@ -163,13 +178,15 @@ export async function syncShoppingList(weekStartStr: string) {
     console.log("[syncShoppingList] Found", dbRecipes?.length ?? 0, "recipes");
 
     (dbRecipes ?? []).forEach(r => {
-      console.log("[syncShoppingList] Recipe", r.name, "has", r.ingredients?.length ?? 0, "ingredients");
       recipeMap.set(r.id, {
         id: r.id,
         name: r.name,
+        name_ro: r.name_ro,
         meal_type: r.meal_type,
         ingredients: r.ingredients ?? [],
+        ingredients_ro: r.ingredients_ro,
         instructions: r.instructions ?? "",
+        instructions_ro: r.instructions_ro,
         family_id: r.family_id,
         created_by: r.user_id ?? null,
         created_at: r.created_at,
@@ -248,6 +265,7 @@ export async function syncShoppingList(weekStartStr: string) {
           family_id: familyId,
           week_start: weekStartStr,
           ingredient_name: item.ingredient_name,
+          ingredient_name_ro: item.ingredient_name_ro,
           total_quantity: quantity,
           unit: item.unit,
           checked: item.checked,
@@ -278,6 +296,7 @@ export async function refreshShoppingList(weekStartStr: string) {
 
 function rowToItem(row: {
   ingredientName: string;
+  ingredientNameRo: string | null;
   totalQuantity: unknown;
   unit: string;
   checked: boolean;
@@ -287,6 +306,7 @@ function rowToItem(row: {
   const total_quantity = Number(row.totalQuantity);
   return {
     ingredient_name: row.ingredientName,
+    ingredient_name_ro: row.ingredientNameRo ?? undefined,
     total_quantity,
     unit: row.unit,
     checked: row.checked,
@@ -367,7 +387,8 @@ export async function addManualShoppingItem(
   weekStartStr: string,
   ingredientName: string,
   quantity: number,
-  unit: string
+  unit: string,
+  ingredientNameRo?: string
 ) {
   const { familyId } = await getCurrentUserAndFamily();
   if (!familyId) throw new Error("No family found");
@@ -393,6 +414,7 @@ export async function addManualShoppingItem(
         familyId,
         weekStart,
         ingredientName: ingredient,
+        ingredientNameRo: ingredientNameRo || null,
         totalQuantity: quantity,
         unit: u,
         checked: false,
@@ -428,6 +450,7 @@ export async function addManualShoppingItem(
         family_id: familyId,
         week_start: weekStartStr,
         ingredient_name: ingredient,
+        ingredient_name_ro: ingredientNameRo || null,
         total_quantity: quantity,
         unit: u,
         checked: false,
@@ -435,6 +458,42 @@ export async function addManualShoppingItem(
         recipe_ids: [],
       });
     }
+    return { ok: true };
+  }
+}
+
+export async function deleteShoppingItem(
+  weekStartStr: string,
+  ingredientName: string,
+  unit: string
+) {
+  const { familyId } = await getCurrentUserAndFamily();
+  if (!familyId) throw new Error("No family found");
+
+  const weekStart = new Date(weekStartStr);
+
+  try {
+    await prisma.shoppingItem.delete({
+      where: {
+        familyId_weekStart_ingredientName_unit: {
+          familyId,
+          weekStart,
+          ingredientName,
+          unit,
+        },
+      },
+    });
+    return { ok: true };
+  } catch (err) {
+    console.error("Prisma deleteShoppingItem error, falling back to Supabase", err);
+    const supabase = await createClient();
+    await supabase
+      .from("shopping_items")
+      .delete()
+      .eq("family_id", familyId)
+      .eq("week_start", weekStartStr)
+      .eq("ingredient_name", ingredientName)
+      .eq("unit", unit);
     return { ok: true };
   }
 }

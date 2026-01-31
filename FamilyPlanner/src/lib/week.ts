@@ -6,10 +6,13 @@ import {
   parseISO,
   type Locale,
 } from "date-fns";
-import { enUS } from "date-fns/locale";
+import { enUS, ro } from "date-fns/locale";
 import type { DayPlan, DayMeals, MealSlot } from "@/types";
 
-const LOCALE: Locale = enUS;
+const locales = {
+  en: enUS,
+  ro: ro,
+};
 
 export const MEAL_KEYS = ["breakfast", "lunch", "dinner", "togo", "dessert"] as const;
 export const MEAL_LABELS: Record<(typeof MEAL_KEYS)[number], string> = {
@@ -28,9 +31,10 @@ export function getWeekDates(weekStart: Date): Date[] {
   return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 }
 
-export function formatWeekRange(weekStart: Date): string {
+export function formatWeekRange(weekStart: Date, lang: "en" | "ro" = "en"): string {
   const end = addDays(weekStart, 6);
-  return `${format(weekStart, "d MMM", { locale: LOCALE })} – ${format(end, "d MMM yyyy", { locale: LOCALE })}`;
+  const locale = locales[lang];
+  return `${format(weekStart, "d MMM", { locale })} – ${format(end, "d MMM yyyy", { locale })}`;
 }
 
 export function toDateString(d: Date): string {

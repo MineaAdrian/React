@@ -21,6 +21,7 @@ export type MealType = "breakfast" | "lunch" | "dinner" | "togo" | "dessert";
 
 export interface Ingredient {
   name: string;
+  name_ro?: string;
   quantity: number;
   unit: string; // g, ml, pcs, etc.
 }
@@ -28,9 +29,12 @@ export interface Ingredient {
 export interface Recipe {
   id: string;
   name: string;
+  name_ro?: string;
   meal_type: MealType;
   ingredients: Ingredient[];
+  ingredients_ro?: any;
   instructions: string;
+  instructions_ro?: string;
   family_id: string | null; // null = global
   created_by: string | null;
   cooking_time_minutes?: number;
@@ -71,6 +75,7 @@ export interface WeekPlan {
 // Shopping list
 export interface ShoppingItem {
   ingredient_name: string;
+  ingredient_name_ro?: string;
   total_quantity: number;
   unit: string;
   checked: boolean;

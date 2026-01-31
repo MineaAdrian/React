@@ -2,14 +2,17 @@
 
 import { useState } from "react";
 import { addManualShoppingItem } from "@/app/actions/shopping";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface AddShoppingItemProps {
     weekStartStr: string;
 }
 
 export function AddShoppingItem({ weekStartStr }: AddShoppingItemProps) {
+    const { t, language } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const [name, setName] = useState("");
+    const [nameRo, setNameRo] = useState("");
     const [quantity, setQuantity] = useState("1");
     const [unit, setUnit] = useState("pcs");
     const [loading, setLoading] = useState(false);
@@ -20,8 +23,9 @@ export function AddShoppingItem({ weekStartStr }: AddShoppingItemProps) {
 
         setLoading(true);
         try {
-            await addManualShoppingItem(weekStartStr, name, Number(quantity), unit);
+            await addManualShoppingItem(weekStartStr, name, Number(quantity), unit, nameRo);
             setName("");
+            setNameRo("");
             setQuantity("1");
             setUnit("pcs");
             setIsOpen(false);
@@ -39,7 +43,7 @@ export function AddShoppingItem({ weekStartStr }: AddShoppingItemProps) {
                 onClick={() => setIsOpen(true)}
                 className="btn-secondary flex items-center gap-2"
             >
-                <span>+</span> Add manual item
+                <span>+</span> {t("shopping_add_item")}
             </button>
         );
     }
@@ -47,26 +51,74 @@ export function AddShoppingItem({ weekStartStr }: AddShoppingItemProps) {
     return (
         <div className="card p-4 animate-in fade-in slide-in-from-top-2 duration-200">
             <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    <div className="sm:col-span-1">
-                        <label htmlFor="item-name" className="block text-xs font-medium text-sage-600 uppercase mb-1">
-                            Item Name
-                        </label>
-                        <input
-                            id="item-name"
-                            type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="e.g. Milk"
-                            className="input h-10"
-                            required
-                            autoFocus
-                        />
-                    </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+                    {language === 'ro' ? (
+                        <>
+                            <div className="sm:col-span-1">
+                                <label htmlFor="item-name-ro" className="block text-xs font-medium text-sage-600 uppercase mb-1">
+                                    {t("recipes_ing_name")} (RO)
+                                </label>
+                                <input
+                                    id="item-name-ro"
+                                    type="text"
+                                    value={nameRo}
+                                    onChange={(e) => setNameRo(e.target.value)}
+                                    placeholder="ex. Lapte"
+                                    className="input h-10"
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="sm:col-span-1">
+                                <label htmlFor="item-name" className="block text-xs font-medium text-sage-600 uppercase mb-1">
+                                    {t("recipes_ing_name")} (EN)
+                                </label>
+                                <input
+                                    id="item-name"
+                                    type="text"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    placeholder="e.g. Milk"
+                                    className="input h-10"
+                                    required
+                                />
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <div className="sm:col-span-1">
+                                <label htmlFor="item-name" className="block text-xs font-medium text-sage-600 uppercase mb-1">
+                                    {t("recipes_ing_name")} (EN)
+                                </label>
+                                <input
+                                    id="item-name"
+                                    type="text"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    placeholder="e.g. Milk"
+                                    className="input h-10"
+                                    required
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="sm:col-span-1">
+                                <label htmlFor="item-name-ro" className="block text-xs font-medium text-sage-600 uppercase mb-1">
+                                    {t("recipes_ing_name")} (RO)
+                                </label>
+                                <input
+                                    id="item-name-ro"
+                                    type="text"
+                                    value={nameRo}
+                                    onChange={(e) => setNameRo(e.target.value)}
+                                    placeholder="ex. Lapte"
+                                    className="input h-10"
+                                />
+                            </div>
+                        </>
+                    )}
                     <div className="grid grid-cols-2 gap-2 sm:col-span-2">
                         <div>
                             <label htmlFor="item-qty" className="block text-xs font-medium text-sage-600 uppercase mb-1">
-                                Qty
+                                {t("recipes_qty")}
                             </label>
                             <input
                                 id="item-qty"
@@ -80,7 +132,7 @@ export function AddShoppingItem({ weekStartStr }: AddShoppingItemProps) {
                         </div>
                         <div>
                             <label htmlFor="item-unit" className="block text-xs font-medium text-sage-600 uppercase mb-1">
-                                Unit
+                                {t("recipes_unit")}
                             </label>
                             <input
                                 id="item-unit"
@@ -99,14 +151,14 @@ export function AddShoppingItem({ weekStartStr }: AddShoppingItemProps) {
                         onClick={() => setIsOpen(false)}
                         className="btn-ghost text-sm h-10 px-4"
                     >
-                        Cancel
+                        {t("recipes_cancel")}
                     </button>
                     <button
                         type="submit"
                         disabled={loading}
                         className="btn-primary text-sm h-10 px-6"
                     >
-                        {loading ? "Adding..." : "Add to List"}
+                        {loading ? t("shopping_adding") : t("shopping_add_action")}
                     </button>
                 </div>
             </form>

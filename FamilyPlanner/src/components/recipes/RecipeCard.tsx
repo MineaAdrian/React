@@ -1,6 +1,7 @@
 import { clsx } from "clsx";
 import { useEffect, useState } from "react";
 import type { Recipe } from "@/types";
+import { useTranslation } from "@/hooks/useTranslation";
 
 type Props = {
   recipe: Recipe;
@@ -12,6 +13,7 @@ type Props = {
 };
 
 export function RecipeCard({ recipe, currentUserId, onSelect, onEdit, onReport, compact }: Props) {
+  const { t, language } = useTranslation();
   const [isEditable, setIsEditable] = useState(false);
   const isCreator = !!(currentUserId && recipe.created_by === currentUserId);
 
@@ -30,7 +32,7 @@ export function RecipeCard({ recipe, currentUserId, onSelect, onEdit, onReport, 
 
   const handleReport = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const reason = window.prompt("Why are you reporting this recipe? (e.g. incorrect ingredients, typo, offensive)");
+    const reason = window.prompt(t("recipe_report_prompt"));
     if (reason && onReport) {
       onReport(reason);
     }
@@ -58,12 +60,12 @@ export function RecipeCard({ recipe, currentUserId, onSelect, onEdit, onReport, 
       {/* Recipe Info */}
       <div className="p-4 flex-1">
         <div className="font-semibold text-sage-800 group-hover:text-sage-900 transition-colors leading-snug">
-          {recipe.name}
+          {language === 'ro' && recipe.name_ro ? recipe.name_ro : recipe.name}
         </div>
         {!compact && recipe.ingredients && recipe.ingredients.length > 0 && (
           <div className="mt-2 text-xs text-sage-500 font-medium">
-            {recipe.ingredients.length} ingredients
-            {recipe.cooking_time_minutes ? ` • ${recipe.cooking_time_minutes} min` : ""}
+            {recipe.ingredients.length} {t("recipes_ingredients").toLowerCase()}
+            {recipe.cooking_time_minutes ? ` • ${recipe.cooking_time_minutes} ${t("recipe_mins")}` : ""}
           </div>
         )}
       </div>
@@ -91,7 +93,7 @@ export function RecipeCard({ recipe, currentUserId, onSelect, onEdit, onReport, 
                 onEdit();
               }}
               className="p-2 rounded-lg bg-white/80 backdrop-blur-sm border border-sage-200 text-sage-400 hover:text-sage-600 hover:bg-white hover:border-sage-300 shadow-sm transition-all"
-              title="Edit recipe (Available for 5 mins after creation)"
+              title={t("recipe_edit_hint")}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -103,7 +105,7 @@ export function RecipeCard({ recipe, currentUserId, onSelect, onEdit, onReport, 
             <button
               onClick={handleReport}
               className="p-2 rounded-lg bg-white/80 backdrop-blur-sm border border-sage-200 text-sage-400 hover:text-amber-600 hover:bg-white hover:border-amber-200 shadow-sm transition-all"
-              title="Report issue"
+              title={t("recipe_report_title")}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />

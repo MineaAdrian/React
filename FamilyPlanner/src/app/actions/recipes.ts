@@ -8,10 +8,13 @@ import type { Recipe, MealType } from "@/types";
 function toRecipe(r: {
   id: string;
   name: string;
+  name_ro?: string;
   mealType?: string;
   meal_type?: string;
   ingredients: unknown;
+  ingredients_ro?: unknown;
   instructions: string;
+  instructions_ro?: string;
   familyId?: string | null;
   family_id?: string | null;
   cookingTimeMinutes?: number | null;
@@ -30,9 +33,12 @@ function toRecipe(r: {
   return {
     id: r.id,
     name: r.name,
+    name_ro: r.name_ro,
     meal_type: mt as MealType,
     ingredients: (r.ingredients as Recipe["ingredients"]) ?? [],
+    ingredients_ro: r.ingredients_ro,
     instructions: r.instructions ?? "",
+    instructions_ro: r.instructions_ro,
     family_id: r.familyId ?? r.family_id ?? null,
     cooking_time_minutes: r.cookingTimeMinutes ?? r.cooking_time_minutes ?? undefined,
     difficulty: (r.difficulty as Recipe["difficulty"]) ?? undefined,
@@ -63,7 +69,10 @@ export async function createRecipe(
   ingredients: Recipe["ingredients"],
   instructions: string,
   familyIdInput: string | null,
-  photoUrl?: string
+  photoUrl?: string,
+  name_ro?: string,
+  instructions_ro?: string,
+  ingredients_ro?: any
 ): Promise<string> {
   const { userId, familyId: userFamilyId } = await getCurrentUserAndFamily();
   // If familyIdInput is explicitly null, it means its a public recipe.
@@ -77,9 +86,12 @@ export async function createRecipe(
       family_id: fid,
       user_id: userId,
       name,
+      name_ro,
       meal_type: mealType,
       ingredients,
+      ingredients_ro,
       instructions,
+      instructions_ro,
       photo_url: photoUrl || null,
     })
     .select("id")
@@ -134,16 +146,22 @@ export async function updateRecipe(
   ingredients: Recipe["ingredients"],
   instructions: string,
   photoUrl?: string,
-  familyId: string | null = null
+  familyId: string | null = null,
+  name_ro?: string,
+  instructions_ro?: string,
+  ingredients_ro?: any
 ): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase
     .from("recipes")
     .update({
       name,
+      name_ro,
       meal_type: mealType,
       ingredients,
+      ingredients_ro,
       instructions,
+      instructions_ro,
       photo_url: photoUrl || null,
       family_id: familyId,
     })

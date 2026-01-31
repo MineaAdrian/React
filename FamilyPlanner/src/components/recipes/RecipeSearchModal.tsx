@@ -17,6 +17,8 @@ type Props = {
   onClose: () => void;
 };
 
+import { useTranslation } from "@/hooks/useTranslation";
+
 export function RecipeSearchModal(props: Props) {
   const {
     mealType,
@@ -27,6 +29,7 @@ export function RecipeSearchModal(props: Props) {
     onSelect,
     onClose,
   } = props;
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<MealType | "">(mealType);
 
@@ -38,7 +41,11 @@ export function RecipeSearchModal(props: Props) {
       list = list.filter(
         (r) =>
           r.name.toLowerCase().includes(q) ||
-          (r.ingredients && r.ingredients.some((i) => i.name.toLowerCase().includes(q)))
+          r.name_ro?.toLowerCase().includes(q) ||
+          (r.ingredients && r.ingredients.some((i) =>
+            i.name.toLowerCase().includes(q) ||
+            i.name_ro?.toLowerCase().includes(q)
+          ))
       );
     }
     return list;
@@ -54,7 +61,7 @@ export function RecipeSearchModal(props: Props) {
       <div className="card max-h-[85vh] w-full max-w-lg overflow-hidden flex flex-col">
         <div className="flex items-center justify-between border-b border-sage-100 p-4">
           <h2 className="font-display text-lg font-semibold text-sage-800">
-            Assign recipe - {MEAL_LABELS[mealType]}
+            {t("assign_recipe")} - {t(mealType)}
           </h2>
           <button
             type="button"
@@ -62,7 +69,7 @@ export function RecipeSearchModal(props: Props) {
             className="rounded-lg p-1 text-sage-500 hover:bg-sage-100 hover:text-sage-800"
             aria-label="Close"
           >
-            Close
+            {t("close")}
           </button>
         </div>
         <div className="space-y-2 p-4">
@@ -70,7 +77,7 @@ export function RecipeSearchModal(props: Props) {
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name or ingredient"
+            placeholder={t("recipes_search_placeholder")}
             className="input"
             autoFocus
           />
@@ -79,10 +86,10 @@ export function RecipeSearchModal(props: Props) {
             onChange={(e) => setFilterType((e.target.value || "") as MealType | "")}
             className="input"
           >
-            <option value="">All meal types</option>
+            <option value="">{t("all_meal_types")}</option>
             {(Object.keys(MEAL_LABELS) as MealType[]).map((key) => (
               <option key={key} value={key}>
-                {MEAL_LABELS[key]}
+                {t(key)}
               </option>
             ))}
           </select>
@@ -93,7 +100,7 @@ export function RecipeSearchModal(props: Props) {
             onClick={() => handleSelect(null)}
             className="w-full rounded-lg border-2 border-dashed border-sage-200 py-3 text-sm text-sage-500 hover:border-sage-300 hover:bg-sage-50"
           >
-            Clear slot
+            {t("clear_slot")}
           </button>
           {filtered.map((recipe) => (
             <RecipeCard
@@ -103,7 +110,7 @@ export function RecipeSearchModal(props: Props) {
             />
           ))}
           {filtered.length === 0 && (
-            <p className="py-4 text-center text-sage-500">No recipes match.</p>
+            <p className="py-4 text-center text-sage-500">{t("recipes_not_found")}</p>
           )}
         </div>
       </div>
