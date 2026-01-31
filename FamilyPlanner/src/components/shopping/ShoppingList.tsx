@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { clsx } from "clsx";
 import { createClient } from "@/lib/supabase/client";
 import { getShoppingList, toggleShoppingItem, refreshShoppingList, deleteShoppingItem } from "@/app/actions/shopping";
 import { useWeekStore } from "@/store/weekStore";
@@ -16,8 +17,6 @@ export function ShoppingList() {
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isLive, setIsLive] = useState(false);
-  const channelRef = useRef<ReturnType<ReturnType<typeof createClient>["channel"]> | null>(null);
 
   const refresh = () => {
     getShoppingList(weekStartStr).then((res) => {
@@ -57,34 +56,6 @@ export function ShoppingList() {
     initLoad();
   }, [weekStartStr]);
 
-  useEffect(() => {
-    const supabase = createClient();
-    channelRef.current = supabase
-      .channel(`shopping:${weekStartStr}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "shopping_items",
-          filter: `week_start=eq.${weekStartStr}`,
-        },
-        (payload) => {
-          // Instead of full refresh, we could just patch the items
-          // but for simplicity and correctness with aggregation, full refresh is safer
-          // as long as getShoppingList is fast (read-only).
-          refresh();
-        }
-      )
-      .subscribe((status) => {
-        setIsLive(status === "SUBSCRIBED");
-      });
-
-    return () => {
-      channelRef.current?.unsubscribe();
-      channelRef.current = null;
-    };
-  }, [weekStartStr]);
 
   const handleToggle = async (ingredientName: string, unit: string, checked: boolean) => {
     // Optimistic update
@@ -169,23 +140,27 @@ export function ShoppingList() {
         <p className="text-sm text-sage-600">
           {t("shopping_subtitle")}
         </p>
-        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
-          <AddShoppingItem weekStartStr={weekStartStr} />
-          <div className="flex items-center justify-between gap-4 sm:justify-end">
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-sage-50 border border-sage-100">
-              <div className={`h-2 w-2 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-sage-300'}`} />
-              <span className="text-[10px] font-medium uppercase tracking-wider text-sage-500">
-                {isLive ? t("shopping_live") : t("shopping_not_live")}
-              </span>
-            </div>
-            <button
-              onClick={handleManualRefresh}
-              disabled={isRefreshing}
-              className="btn-secondary text-sm py-1.5"
-            >
-              {isRefreshing ? t("shopping_refreshing") : t("shopping_refresh_button")}
-            </button>
+        <div className="flex w-full items-center gap-2 sm:w-auto">
+          <div className="flex-1 sm:flex-none">
+            <AddShoppingItem weekStartStr={weekStartStr} />
           </div>
+          <button
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+            className="btn-secondary p-2.5 flex items-center justify-center rounded-xl shrink-0"
+            title={t("shopping_refresh_button")}
+            aria-label={t("shopping_refresh_button")}
+          >
+            <svg
+              className={clsx("h-5 w-5", isRefreshing && "animate-spin")}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
         </div>
       </div>
 
