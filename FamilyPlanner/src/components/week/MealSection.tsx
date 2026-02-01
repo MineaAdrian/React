@@ -66,18 +66,29 @@ export function MealSection({ dayPlan, recipes, weekStartStr, onUpdate }: MealSe
 
             return (
               <div key={mealKey} className="group p-6 hover:bg-sage-50/20 transition-colors">
-                <div className="flex flex-row items-center gap-6">
-                  {/* Meal Label */}
-                  <div className="w-28 shrink-0">
-                    <span className="text-[10px] font-bold text-sage-300 uppercase tracking-widest block mb-0.5">
-                      {t(mealKey)}
-                    </span>
-                    <h3 className="text-sm font-black text-sage-800 uppercase tracking-tight">
-                      {t(mealKey)}
-                    </h3>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+                  {/* Meal Label + Mobile Add Button */}
+                  <div className="flex items-center justify-between sm:w-28 sm:shrink-0 sm:block">
+                    <div>
+                      <span className="text-[10px] font-bold text-sage-300 uppercase tracking-widest block mb-0.5">
+                        {t(mealKey)}
+                      </span>
+                      <h3 className="text-sm font-black text-sage-800 uppercase tracking-tight">
+                        {t(mealKey)}
+                      </h3>
+                    </div>
+                    {/* Small Add Button for mobile - shown on same line as label */}
+                    <div className="sm:hidden">
+                      <button
+                        onClick={() => setOpenSlot({ mealKey, slotIndex: filledSlots.length })}
+                        className="w-10 h-10 rounded-xl border-2 border-dashed border-sage-100 flex items-center justify-center text-sage-200 hover:border-sage-300 hover:text-sage-400 hover:bg-sage-50 transition-all"
+                      >
+                        <span className="text-lg font-light">＋</span>
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Recipe Stack (Vertical list for multiple dishes) */}
+                  {/* Recipe Stack */}
                   <div className="flex-1 flex flex-col gap-3">
                     {filledSlots.map((slot, slotIndex) => {
                       const recipe = recipes.find((r) => r.id === slot.recipe_id);
@@ -115,10 +126,10 @@ export function MealSection({ dayPlan, recipes, weekStartStr, onUpdate }: MealSe
                             </p>
                           </div>
 
-                          {/* Delete Button on Hover */}
+                          {/* Delete Button */}
                           <button
                             onClick={(e) => handleRemoveMeal(e, mealKey, slotIndex)}
-                            className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white text-red-500 shadow-sm border border-red-50 flex items-center justify-center text-[10px] font-bold opacity-0 group-hover/slot:opacity-100 transition-all hover:scale-110"
+                            className="absolute -top-1.5 -right-1.5 w-8 h-8 sm:w-6 sm:h-6 rounded-full bg-white text-red-500 shadow-md border border-red-50 flex items-center justify-center text-[10px] font-bold opacity-100 sm:opacity-0 sm:group-hover/slot:opacity-100 transition-all hover:scale-110 active:scale-95"
                           >
                             ✕
                           </button>
@@ -127,8 +138,8 @@ export function MealSection({ dayPlan, recipes, weekStartStr, onUpdate }: MealSe
                     })}
                   </div>
 
-                  {/* Small Add Button on Right */}
-                  <div className="shrink-0 ml-2">
+                  {/* Small Add Button for desktop - shown on far right */}
+                  <div className="hidden sm:block shrink-0 ml-2">
                     <button
                       onClick={() => setOpenSlot({ mealKey, slotIndex: filledSlots.length })}
                       className="w-12 h-12 rounded-xl border-2 border-dashed border-sage-100 flex items-center justify-center text-sage-200 hover:border-sage-300 hover:text-sage-400 hover:bg-sage-50 transition-all group/add"
