@@ -122,7 +122,7 @@ export function MealSection({ dayPlan, recipes, weekStartStr, onUpdate }: MealSe
                               {language === 'ro' && recipe.name_ro ? recipe.name_ro : recipe.name}
                             </p>
                             <p className="text-[10px] text-sage-400 font-bold uppercase tracking-widest mt-0.5">
-                              • {recipe.difficulty ? t(recipe.difficulty as any) : 'M'}
+                              • {recipe.difficulty ? t(recipe.difficulty) : 'M'}
                             </p>
                           </div>
 
@@ -165,7 +165,7 @@ export function MealSection({ dayPlan, recipes, weekStartStr, onUpdate }: MealSe
                     className="absolute inset-0 h-full w-full object-cover scale-105"
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center text-6xl bg-gradient-to-br from-cream to-sage-50 grayscale opacity-40">�</div>
+                  <div className="flex h-full w-full items-center justify-center text-6xl bg-gradient-to-br from-cream to-sage-50 grayscale opacity-40">🍽️</div>
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-sage-900/60 via-transparent to-transparent" />
                 <button
@@ -197,14 +197,14 @@ export function MealSection({ dayPlan, recipes, weekStartStr, onUpdate }: MealSe
                     <div className="flex flex-col">
                       <span className="text-[8px] font-black uppercase tracking-widest text-sage-300">{t("recipe_level")}</span>
                       <span className="text-xs font-bold text-sage-700 capitalize">
-                        {t(selectedRecipe.difficulty as any)}
+                        {t(selectedRecipe.difficulty)}
                       </span>
                     </div>
                   )}
                   <div className="flex flex-col">
                     <span className="text-[8px] font-black uppercase tracking-widest text-sage-300">{t("recipe_type")}</span>
                     <span className="text-xs font-bold text-sage-700 capitalize">
-                      {t(selectedRecipe.meal_type as any)}
+                      {t(selectedRecipe.meal_type)}
                     </span>
                   </div>
                 </div>
@@ -216,7 +216,7 @@ export function MealSection({ dayPlan, recipes, weekStartStr, onUpdate }: MealSe
                   </h4>
                   <div className="grid grid-cols-1 gap-3">
                     {selectedRecipe.ingredients.map((ing, i) => {
-                      const roName = ing.name_ro || (selectedRecipe.ingredients_ro as any)?.[i]?.name;
+                      const roName = ing.name_ro || selectedRecipe.ingredients_ro?.[i]?.name;
                       return (
                         <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-sage-50/50 border border-sage-50 group/item hover:bg-white transition-colors">
                           <div className="w-1.5 h-1.5 rounded-full bg-sage-300 group-hover/item:bg-sage-600 transition-colors" />
@@ -292,7 +292,7 @@ export function MealSection({ dayPlan, recipes, weekStartStr, onUpdate }: MealSe
                       <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-sage-300 mb-6">{t("menu_pantry_check")}</h4>
                       <ul className="space-y-4">
                         {selectedRecipe.ingredients.map((ing, i) => {
-                          const roName = ing.name_ro || (selectedRecipe.ingredients_ro as any)?.[i]?.name;
+                          const roName = ing.name_ro || selectedRecipe.ingredients_ro?.[i]?.name;
                           return (
                             <li key={i} className="flex flex-col pb-4 border-b border-sage-50 last:border-0">
                               <span className="text-base font-bold text-sage-800">

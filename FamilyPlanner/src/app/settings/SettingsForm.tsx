@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { removeMember, inviteMemberByEmail, sendJoinRequest, handleRequestAction } from "../actions/family";
-import { UserRole } from "@/types";
+import { UserRole, type FamilyMemberRow, type FamilyRequestRow } from "@/types";
 
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -14,9 +14,9 @@ type Props = {
   userRole: UserRole;
   familyName: string;
   familyId: string | null;
-  members: Array<{ id: string; name: string | null; email: string | null; role: string }>;
-  invitations: any[];
-  requests: any[];
+  members: FamilyMemberRow[];
+  invitations: FamilyRequestRow[];
+  requests: FamilyRequestRow[];
 };
 
 export function SettingsForm({ userId, userName, userRole, familyName, familyId, members, invitations, requests }: Props) {
@@ -49,8 +49,8 @@ export function SettingsForm({ userId, userName, userRole, familyName, familyId,
       setInviteEmail("");
       setStatus("success");
       setTimeout(() => setStatus(null), 3000);
-    } catch (error: any) {
-      alert(error.message);
+    } catch (error: unknown) {
+      alert(error instanceof Error ? error.message : String(error));
       setStatus(null);
     }
   };
@@ -63,8 +63,8 @@ export function SettingsForm({ userId, userName, userRole, familyName, familyId,
       setJoinId("");
       setStatus("success");
       setTimeout(() => setStatus(null), 3000);
-    } catch (error: any) {
-      alert(error.message);
+    } catch (error: unknown) {
+      alert(error instanceof Error ? error.message : String(error));
       setStatus(null);
     }
   };
@@ -73,8 +73,8 @@ export function SettingsForm({ userId, userName, userRole, familyName, familyId,
     try {
       await handleRequestAction(id, action);
       await refreshProfile();
-    } catch (error: any) {
-      alert(error.message);
+    } catch (error: unknown) {
+      alert(error instanceof Error ? error.message : String(error));
     }
   };
 
@@ -147,7 +147,7 @@ export function SettingsForm({ userId, userName, userRole, familyName, familyId,
                   <div className="bg-amber-50 rounded-lg p-4 mb-4 border border-amber-100">
                     <h3 className="text-xs font-bold text-amber-800 uppercase mb-3">{t("settings_join_requests")}</h3>
                     <div className="space-y-3">
-                      {requests.map((req: any) => (
+                      {requests.map((req: FamilyRequestRow) => (
                         <div key={req.id} className="flex items-center justify-between bg-white/50 p-2 rounded border border-amber-200">
                           <span className="text-xs font-medium text-amber-900">{req.email}</span>
                           <div className="flex gap-2">
@@ -204,9 +204,9 @@ export function SettingsForm({ userId, userName, userRole, familyName, familyId,
                   <span className="text-lg">💌</span> {t("settings_invited_title")}
                 </h3>
                 <div className="space-y-3">
-                  {invitations.map((inv: any) => (
+                  {invitations.map((inv: FamilyRequestRow) => (
                     <div key={inv.id} className="flex flex-col gap-2 p-3 bg-white/10 rounded-lg border border-white/20">
-                      <p className="text-xs">{language === 'ro' ? 'Ai fost invitat să te alături' : 'You were invited to join'} <strong>{inv.families?.name}</strong></p>
+                      <p className="text-xs">{t("settings_invited_to_join")} <strong>{inv.families?.name}</strong></p>
                       <div className="flex gap-2">
                         <button onClick={() => onAction(inv.id, 'accepted')} className="flex-1 py-1.5 bg-white text-sage-800 rounded text-[10px] font-bold uppercase shadow-sm active:translate-y-0.5 transition-all">{t("settings_accept")}</button>
                         <button onClick={() => onAction(inv.id, 'rejected')} className="flex-1 py-1.5 bg-sage-700 text-white border border-sage-500 rounded text-[10px] font-bold uppercase active:translate-y-0.5 transition-all">{t("settings_ignore")}</button>

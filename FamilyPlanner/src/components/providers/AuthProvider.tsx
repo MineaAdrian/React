@@ -67,8 +67,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { ensureFamilyFromMetadata } = await import("@/app/actions/auth");
         await ensureFamilyFromMetadata();
         await fetchProfile(session.user.id);
+        setLoading(false);
       } else {
         setProfile(null);
+        setLoading(false);
       }
     });
 

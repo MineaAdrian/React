@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Nav } from "@/components/layout/Nav";
 import { SettingsForm } from "./SettingsForm";
+import type { FamilyMemberRow, FamilyRequestRow } from "@/types";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -14,8 +15,8 @@ export default async function SettingsPage() {
     .eq("id", user.id)
     .single();
 
-  let familyName = null;
-  let members: any[] = [];
+  let familyName: string | null = null;
+  let members: FamilyMemberRow[] = [];
 
   if (profile?.family_id) {
     const { data: family } = await supabase
@@ -23,20 +24,20 @@ export default async function SettingsPage() {
       .select("name")
       .eq("id", profile.family_id)
       .single();
-    familyName = family?.name;
+    familyName = family?.name ?? null;
 
     const { data: familyMembers } = await supabase
       .from("profiles")
       .select("id, name, email, role")
       .eq("family_id", profile.family_id);
-    members = familyMembers || [];
+    members = (familyMembers || []) as FamilyMemberRow[];
   }
 
   // Fetch pending items
   const { getPendingRequests } = await import("@/app/actions/family");
-  const invitations = await getPendingRequests(undefined, user.email);
+  const invitations = await getPendingRequests(undefined, user.email ?? undefined) as FamilyRequestRow[];
   const requests = profile?.family_id && profile.role === 'admin'
-    ? await getPendingRequests(profile.family_id)
+    ? (await getPendingRequests(profile.family_id)) as FamilyRequestRow[]
     : [];
 
   return (
@@ -50,8 +51,8 @@ export default async function SettingsPage() {
           familyName={familyName ?? ""}
           familyId={profile?.family_id ?? null}
           members={members}
-          invitations={invitations as any}
-          requests={requests as any}
+          invitations={invitations}
+          requests={requests}
         />
       </main>
     </>

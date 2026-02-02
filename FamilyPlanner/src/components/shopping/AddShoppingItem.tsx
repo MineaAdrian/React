@@ -21,9 +21,10 @@ export function AddShoppingItem({ weekStartStr }: AddShoppingItemProps) {
         e.preventDefault();
         if (!name.trim()) return;
 
+        const qty = quantity.trim() === "" ? 1 : Math.max(1, Number(quantity) || 1);
         setLoading(true);
         try {
-            await addManualShoppingItem(weekStartStr, name, Number(quantity), unit, nameRo);
+            await addManualShoppingItem(weekStartStr, name, qty, unit, nameRo);
             setName("");
             setNameRo("");
             setQuantity("1");

@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserAndFamily } from "@/lib/auth";
-import type { Recipe, MealType } from "@/types";
+import type { Recipe, MealType, IngredientRo } from "@/types";
 
 function toRecipe(r: {
   id: string;
@@ -36,7 +36,7 @@ function toRecipe(r: {
     name_ro: r.name_ro,
     meal_type: mt as MealType,
     ingredients: (r.ingredients as Recipe["ingredients"]) ?? [],
-    ingredients_ro: r.ingredients_ro,
+    ingredients_ro: r.ingredients_ro as Recipe["ingredients_ro"],
     instructions: r.instructions ?? "",
     instructions_ro: r.instructions_ro,
     family_id: r.familyId ?? r.family_id ?? null,
@@ -72,7 +72,7 @@ export async function createRecipe(
   photoUrl?: string,
   name_ro?: string,
   instructions_ro?: string,
-  ingredients_ro?: any
+  ingredients_ro?: IngredientRo[]
 ): Promise<string> {
   const { userId, familyId: userFamilyId } = await getCurrentUserAndFamily();
   // If familyIdInput is explicitly null, it means its a public recipe.
@@ -149,7 +149,7 @@ export async function updateRecipe(
   familyId: string | null = null,
   name_ro?: string,
   instructions_ro?: string,
-  ingredients_ro?: any
+  ingredients_ro?: IngredientRo[]
 ): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase
@@ -212,10 +212,11 @@ export async function reportRecipe(recipeId: string, reason: string): Promise<vo
     try {
       const { sendEmail } = await import("@/lib/email");
 
-      // Use ADMIN_EMAIL as the primary destination as requested by the user
-      const reportEmail = process.env.ADMIN_EMAIL || "mineaad14@gmail.com";
-
-      await sendEmail({
+      const reportEmail = process.env.ADMIN_EMAIL;
+      if (!reportEmail) {
+        console.warn("ADMIN_EMAIL not set; skipping report email.");
+      } else {
+        await sendEmail({
         to: reportEmail,
         subject: `🚩 Recipe Reported: ${recipe.name}`,
         html: `
@@ -225,7 +226,8 @@ export async function reportRecipe(recipeId: string, reason: string): Promise<vo
           <p><strong>Reason:</strong> ${reason}</p>
           <p>Please review this recipe in the dashboard.</p>
         `,
-      });
+        });
+      }
     } catch (emailErr) {
       console.warn("Failed to send report email:", emailErr);
     }
@@ -233,8 +235,8 @@ export async function reportRecipe(recipeId: string, reason: string): Promise<vo
     // Always log the report for server-side traceability
     console.log(`[REPORT SUCCESS] Recipe ${recipeId} reported by ${userId}. Reason: ${reason}`);
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("reportRecipe critically failed:", err);
-    throw new Error(err.message || "Failed to process report");
+    throw new Error(err instanceof Error ? err.message : "Failed to process report");
   }
 }
