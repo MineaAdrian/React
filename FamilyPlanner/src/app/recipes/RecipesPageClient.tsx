@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { getRecipes, createRecipe, uploadRecipePhoto, updateRecipe, reportRecipe } from "@/app/actions/recipes";
 import { RecipeCard } from "@/components/recipes/RecipeCard";
 import { MEAL_LABELS } from "@/lib/week";
@@ -41,6 +41,17 @@ export function RecipesPageClient({ familyId }: Props) {
     });
   }, [familyId]);
 
+  useEffect(() => {
+    if (showForm || viewingRecipe) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [showForm, viewingRecipe]);
+
   const handleEdit = (recipe: Recipe) => {
     setEditingRecipeId(recipe.id);
     setName(recipe.name);
@@ -53,14 +64,12 @@ export function RecipesPageClient({ familyId }: Props) {
     setPhotoUrl(recipe.photo_url || "");
     setShowForm(true);
     setViewingRecipe(null);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleView = (recipe: Recipe) => {
     setViewingRecipe(recipe);
     setShowForm(false);
     setEditingRecipeId(null);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleReport = async (id: string, reason: string) => {
@@ -180,76 +189,8 @@ export function RecipesPageClient({ familyId }: Props) {
         </button>
       </div>
 
-      {/* View Recipe Panel */}
-      {viewingRecipe && !showForm && (
-        <div className="card space-y-8 p-8 border-2 border-sage-100 shadow-xl shadow-sage-900/5 animate-in fade-in slide-in-from-top-4 duration-300">
-          <div className="flex flex-col md:flex-row gap-8">
-            {viewingRecipe.photo_url && (
-              <div className="w-full md:w-1/3 aspect-square rounded-2xl overflow-hidden shadow-md">
-                <img src={viewingRecipe.photo_url} alt={viewingRecipe.name} className="w-full h-full object-cover" />
-              </div>
-            )}
-            <div className="flex-1 space-y-6">
-              <div>
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-sage-500 mb-1 block">
-                      {MEAL_LABELS[viewingRecipe.meal_type] ? t(viewingRecipe.meal_type) : viewingRecipe.meal_type}
-                    </span>
-                    <h2 className="text-3xl font-display font-semibold text-sage-900 leading-tight">
-                      {language === 'ro' && viewingRecipe.name_ro ? viewingRecipe.name_ro : viewingRecipe.name}
-                    </h2>
-                  </div>
-                  {profile?.id === viewingRecipe.created_by && (
-                    <button
-                      onClick={() => handleEdit(viewingRecipe)}
-                      className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1"
-                    >
-                      ✏️ {t("recipe_view_edit")}
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-sage-50/50 p-4 rounded-xl border border-sage-100">
-                  <h3 className="text-xs font-black uppercase tracking-widest text-sage-400 mb-3">{t("recipes_ingredients")}</h3>
-                  <ul className="space-y-2">
-                    {viewingRecipe.ingredients.map((ing, i) => {
-                      const roName = ing.name_ro || viewingRecipe.ingredients_ro?.[i]?.name;
-                      return (
-                        <li key={i} className="flex justify-between text-sm">
-                          <span className="font-medium text-sage-800">
-                            {language === 'ro' && roName ? roName : ing.name}
-                          </span>
-                          <span className="text-sage-500 font-mono text-xs">{ing.quantity} {ing.unit}</span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-                {viewingRecipe.family_id && (
-                  <div className="bg-sage-50/50 p-4 rounded-xl border border-sage-100 h-fit">
-                    <span className="text-xs font-bold text-sage-500">🏠 {t("recipe_view_family")}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-xs font-black uppercase tracking-widest text-sage-400 mb-4">{t("recipe_view_method")}</h3>
-            <div className="prose prose-sage prose-p:text-sage-800 prose-p:leading-relaxed">
-              <p className="whitespace-pre-wrap text-lg">
-                {(language === 'ro' && viewingRecipe.instructions_ro) ? viewingRecipe.instructions_ro : (viewingRecipe.instructions || t("menu_no_instructions"))}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Search and Filters */}
-      {!showForm && !viewingRecipe && recipes.length > 0 && (
+      {recipes.length > 0 && (
         <div className="flex flex-col gap-4 sm:flex-row">
           <div className="relative flex-1">
             <input
@@ -288,338 +229,7 @@ export function RecipesPageClient({ familyId }: Props) {
         </div>
       )}
 
-      {showForm && (
-        <form onSubmit={handleSubmit} className="card space-y-6 p-8 border-2 border-sage-100 shadow-xl shadow-sage-900/5 animate-in fade-in slide-in-from-top-4 duration-300">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-display font-semibold text-sage-800">
-              {editingRecipeId ? t("recipes_edit") : t("recipes_create")}
-            </h2>
-
-            <div className="flex items-center gap-3 px-4 py-2 bg-sage-50 rounded-2xl border border-sage-100">
-              <div className="flex flex-col">
-                <label className="text-[10px] font-black uppercase tracking-widest text-sage-600 cursor-pointer" htmlFor="family-only-toggle">
-                  🏠 {t("recipes_family_only")}
-                </label>
-                {!familyId && <span className="text-[8px] text-amber-600 font-bold uppercase">{t("recipes_no_family")}</span>}
-              </div>
-              <input
-                id="family-only-toggle"
-                type="checkbox"
-                checked={isFamilyOnly && !!familyId}
-                disabled={!familyId}
-                onChange={(e) => setIsFamilyOnly(e.target.checked)}
-                className="w-5 h-5 rounded-lg border-sage-300 text-sage-600 focus:ring-sage-500 cursor-pointer disabled:opacity-30"
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-4">
-              {language === 'ro' ? (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-sage-700 mb-1">{t("recipes_name_ro")}</label>
-                    <input
-                      type="text"
-                      value={nameRo}
-                      onChange={(e) => setNameRo(e.target.value)}
-                      className="input"
-                      placeholder={t("recipes_name_placeholder")}
-                    />
-                  </div>
-                  <div className="opacity-80">
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-sage-500 mb-1">{t("recipes_name")}</label>
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required
-                      className="input py-2 text-xs"
-                      placeholder={t("recipes_name_placeholder")}
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-sage-700 mb-1">{t("recipes_name")}</label>
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required
-                      className="input"
-                      placeholder={t("recipes_name_placeholder")}
-                    />
-                  </div>
-                  <div className="opacity-80">
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-sage-500 mb-1">{t("recipes_name_ro")}</label>
-                    <input
-                      type="text"
-                      value={nameRo}
-                      onChange={(e) => setNameRo(e.target.value)}
-                      className="input py-2 text-xs"
-                      placeholder={t("recipes_name_placeholder")}
-                    />
-                  </div>
-                </>
-              )}
-              <div>
-                <label className="block text-sm font-medium text-sage-700 mb-1">{t("recipes_meal_type")}</label>
-                <select
-                  value={mealType}
-                  onChange={(e) => setMealType(e.target.value as MealType)}
-                  className="input"
-                >
-                  {(Object.keys(MEAL_LABELS) as MealType[]).map((key) => (
-                    <option key={key} value={key}>
-                      {t(key)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-sage-700 mb-1">{t("recipes_photo")}</label>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    accept="image/*"
-                    className="hidden"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploading}
-                    className="btn-secondary flex items-center gap-2"
-                  >
-                    {isUploading ? (
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-sage-300 border-t-sage-600" />
-                    ) : (
-                      `📷 ${t("recipes_select_photo")}`
-                    )}
-                  </button>
-                  {photoUrl && (
-                    <div className="relative h-16 w-16 overflow-hidden rounded-xl shadow-sm border border-sage-200">
-                      <img src={photoUrl} alt="Preview" className="absolute inset-0 h-full w-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => setPhotoUrl("")}
-                        className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white z-10"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  )}
-                </div>
-                <div className="mt-2">
-                  <input
-                    type="url"
-                    value={photoUrl}
-                    onChange={(e) => setPhotoUrl(e.target.value)}
-                    className="input text-xs"
-                    placeholder="Or paste image URL here..."
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-4">
-              {language === 'ro' ? (
-                <>
-                  <div className="flex-1 flex flex-col">
-                    <label className="block text-sm font-medium text-sage-700 mb-1">{t("recipes_instructions_ro")}</label>
-                    <textarea
-                      value={instructionsRo}
-                      onChange={(e) => setInstructionsRo(e.target.value)}
-                      className="input flex-grow min-h-[10rem] resize-none"
-                      placeholder={t("recipes_instructions_placeholder")}
-                    />
-                  </div>
-                  <div className="flex-1 flex flex-col opacity-80">
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-sage-500 mb-1">{t("recipes_instructions")}</label>
-                    <textarea
-                      value={instructions}
-                      onChange={(e) => setInstructions(e.target.value)}
-                      className="input flex-grow min-h-[6rem] resize-none text-xs"
-                      placeholder={t("recipes_instructions_placeholder")}
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="flex-1 flex flex-col">
-                    <label className="block text-sm font-medium text-sage-700 mb-1">{t("recipes_instructions")}</label>
-                    <textarea
-                      value={instructions}
-                      onChange={(e) => setInstructions(e.target.value)}
-                      className="input flex-grow min-h-[10rem] resize-none"
-                      placeholder={t("recipes_instructions_placeholder")}
-                    />
-                  </div>
-                  <div className="flex-1 flex flex-col opacity-80">
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-sage-500 mb-1">{t("recipes_instructions_ro")}</label>
-                    <textarea
-                      value={instructionsRo}
-                      onChange={(e) => setInstructionsRo(e.target.value)}
-                      className="input flex-grow min-h-[6rem] resize-none text-xs"
-                      placeholder={t("recipes_instructions_placeholder")}
-                    />
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <label className="block text-sm font-medium text-sage-700">{t("recipes_ingredients")}</label>
-              <button
-                type="button"
-                onClick={() => setIngredients([...ingredients, { name: "", name_ro: "", quantity: 1, unit: "pcs/g/ml/l" }])}
-                className="text-xs font-bold text-sage-600 hover:text-sage-800 transition-colors flex items-center gap-1"
-              >
-                <span>➕ {t("recipes_add_item")}</span>
-              </button>
-            </div>
-            <div className="overflow-x-auto rounded-2xl border border-sage-100 bg-white/50">
-              <table className="w-full text-left text-sm font-mono">
-                <thead className="bg-sage-50/50 text-[10px] font-black uppercase tracking-widest text-sage-500">
-                  <tr>
-                    {language === 'ro' ? (
-                      <>
-                        <th className="px-4 py-3">{t("recipes_ing_name")} (RO)</th>
-                        <th className="px-4 py-3">{t("recipes_ing_name")} (EN)</th>
-                      </>
-                    ) : (
-                      <>
-                        <th className="px-4 py-3">{t("recipes_ing_name")} (EN)</th>
-                        <th className="px-4 py-3">{t("recipes_ing_name")} (RO)</th>
-                      </>
-                    )}
-                    <th className="px-4 py-3 w-24">{t("recipes_qty")}</th>
-                    <th className="px-4 py-3 w-24">{t("recipes_unit")}</th>
-                    <th className="px-4 py-3 w-10"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-sage-50">
-                  {ingredients.map((ing, idx) => (
-                    <tr key={idx} className="group hover:bg-sage-50/30 transition-colors">
-                      {language === 'ro' ? (
-                        <>
-                          <td className="px-4 py-2">
-                            <input
-                              type="text"
-                              value={ing.name_ro || ""}
-                              onChange={(e) => {
-                                const newIngs = [...ingredients];
-                                newIngs[idx].name_ro = e.target.value;
-                                setIngredients(newIngs);
-                              }}
-                              placeholder="Făină"
-                              className="w-full bg-transparent border-none focus:ring-0 p-0 text-sage-800 placeholder:text-sage-300"
-                            />
-                          </td>
-                          <td className="px-4 py-2">
-                            <input
-                              type="text"
-                              value={ing.name || ""}
-                              onChange={(e) => {
-                                const newIngs = [...ingredients];
-                                newIngs[idx].name = e.target.value;
-                                setIngredients(newIngs);
-                              }}
-                              placeholder="e.g. Flour"
-                              className="w-full bg-transparent border-none focus:ring-0 p-0 text-sage-800 placeholder:text-sage-300 italic text-xs"
-                            />
-                          </td>
-                        </>
-                      ) : (
-                        <>
-                          <td className="px-4 py-2">
-                            <input
-                              type="text"
-                              value={ing.name || ""}
-                              onChange={(e) => {
-                                const newIngs = [...ingredients];
-                                newIngs[idx].name = e.target.value;
-                                setIngredients(newIngs);
-                              }}
-                              placeholder="e.g. Flour"
-                              className="w-full bg-transparent border-none focus:ring-0 p-0 text-sage-800 placeholder:text-sage-300"
-                            />
-                          </td>
-                          <td className="px-4 py-2">
-                            <input
-                              type="text"
-                              value={ing.name_ro || ""}
-                              onChange={(e) => {
-                                const newIngs = [...ingredients];
-                                newIngs[idx].name_ro = e.target.value;
-                                setIngredients(newIngs);
-                              }}
-                              placeholder="Făină"
-                              className="w-full bg-transparent border-none focus:ring-0 p-0 text-sage-800 placeholder:text-sage-300 italic text-xs"
-                            />
-                          </td>
-                        </>
-                      )}
-                      <td className="px-4 py-2">
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          value={ing.quantity ?? ""}
-                          onChange={(e) => {
-                            const newIngs = [...ingredients];
-                            newIngs[idx].quantity = e.target.value;
-                            setIngredients(newIngs);
-                          }}
-                          className="w-full bg-transparent border-none focus:ring-0 p-0 text-sage-800 placeholder:text-sage-300"
-                        />
-                      </td>
-                      <td className="px-4 py-2">
-                        <input
-                          type="text"
-                          value={ing.unit || ""}
-                          onChange={(e) => {
-                            const newIngs = [...ingredients];
-                            newIngs[idx].unit = e.target.value;
-                            setIngredients(newIngs);
-                          }}
-                          placeholder="g"
-                          className="w-full bg-transparent border-none focus:ring-0 p-0 text-sage-800 placeholder:text-sage-300 uppercase text-[10px] font-bold tracking-wider"
-                        />
-                      </td>
-                      <td className="px-4 py-2 text-right">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (ingredients.length > 1) {
-                              setIngredients(ingredients.filter((_, i) => i !== idx));
-                            } else {
-                              setIngredients([{ name: "", quantity: 1, unit: "pcs" }]);
-                            }
-                          }}
-                          className="opacity-0 group-hover:opacity-100 text-red-300 hover:text-red-500 transition-all p-1"
-                        >
-                          ✕
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <button type="submit" className="btn-primary w-full py-4 text-base font-bold shadow-lg shadow-sage-900/10" disabled={isUploading}>
-            {isUploading ? t("recipes_uploading") : editingRecipeId ? t("recipes_update") : t("recipes_save")}
-          </button>
-        </form>
-      )}
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {filteredRecipes.map((recipe) => (
           <RecipeCard
             key={recipe.id}
@@ -640,10 +250,438 @@ export function RecipesPageClient({ familyId }: Props) {
       )}
       {recipes.length === 0 && !showForm && !viewingRecipe && (
         <div className="card p-12 text-center border-2 border-dashed border-sage-200">
-          <div className="text-4xl mb-4">📖</div>
+          <div className="text-4xl mb-4">�</div>
           <p className="text-sage-500 font-medium">{t("recipes_empty")}</p>
+        </div>
+      )}
+
+      {/* Overlay Layer */}
+      {(showForm || viewingRecipe) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-8 animate-in fade-in duration-200">
+          <div
+            className="absolute inset-0 bg-sage-950/40 backdrop-blur-md transition-opacity"
+            onClick={handleCancel}
+          />
+          <div className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto bg-white rounded-3xl shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+            {viewingRecipe && !showForm ? renderRecipeDetails(viewingRecipe) : renderRecipeForm()}
+          </div>
         </div>
       )}
     </div>
   );
+
+  function renderRecipeDetails(recipe: Recipe) {
+    return (
+      <div className="space-y-8 p-6 sm:p-10 relative">
+        <button
+          onClick={handleCancel}
+          className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full bg-sage-50 text-sage-400 hover:bg-sage-100 hover:text-sage-600 transition-all z-20"
+        >
+          ✕
+        </button>
+        <div className="flex flex-col md:flex-row gap-8">
+          {recipe.photo_url && (
+            <div className="w-full md:w-1/3 aspect-square rounded-2xl overflow-hidden shadow-md">
+              <img src={recipe.photo_url} alt={recipe.name} className="w-full h-full object-cover" />
+            </div>
+          )}
+          <div className="flex-1 space-y-6">
+            <div>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-sage-500 mb-1 block">
+                    {MEAL_LABELS[recipe.meal_type] ? t(recipe.meal_type) : recipe.meal_type}
+                  </span>
+                  <h2 className="text-3xl font-display font-semibold text-sage-900 leading-tight">
+                    {language === 'ro' && recipe.name_ro ? recipe.name_ro : recipe.name}
+                  </h2>
+                </div>
+                {profile?.id === recipe.created_by && (
+                  <button
+                    onClick={() => handleEdit(recipe)}
+                    className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1"
+                  >
+                    ✏️ {t("recipe_view_edit")}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-sage-50/50 p-4 rounded-xl border border-sage-100">
+                <h3 className="text-xs font-black uppercase tracking-widest text-sage-400 mb-3">{t("recipes_ingredients")}</h3>
+                <ul className="space-y-2">
+                  {recipe.ingredients.map((ing, i) => {
+                    const roName = ing.name_ro || recipe.ingredients_ro?.[i]?.name;
+                    return (
+                      <li key={i} className="flex justify-between text-sm">
+                        <span className="font-medium text-sage-800">
+                          {language === 'ro' && roName ? roName : ing.name}
+                        </span>
+                        <span className="text-sage-500 font-mono text-xs">{ing.quantity} {ing.unit}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+              {recipe.family_id && (
+                <div className="bg-sage-50/50 p-4 rounded-xl border border-sage-100 h-fit">
+                  <span className="text-xs font-bold text-sage-500">🏠 {t("recipe_view_family")}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-xs font-black uppercase tracking-widest text-sage-400 mb-4">{t("recipe_view_method")}</h3>
+          <div className="prose prose-sage prose-p:text-sage-800 prose-p:leading-relaxed">
+            <p className="whitespace-pre-wrap text-lg">
+              {(language === 'ro' && recipe.instructions_ro) ? recipe.instructions_ro : (recipe.instructions || t("menu_no_instructions"))}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderRecipeForm() {
+    return (
+      <form onSubmit={handleSubmit} className="space-y-8 p-6 sm:p-10 relative">
+        <button
+          type="button"
+          onClick={handleCancel}
+          className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full bg-sage-50 text-sage-400 hover:bg-sage-100 hover:text-sage-600 transition-all z-20"
+        >
+          ✕
+        </button>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-display font-semibold text-sage-800">
+            {editingRecipeId ? t("recipes_edit") : t("recipes_create")}
+          </h2>
+
+          <div className="flex items-center gap-3 px-4 py-2 bg-sage-50 rounded-2xl border border-sage-100">
+            <div className="flex flex-col">
+              <label className="text-[10px] font-black uppercase tracking-widest text-sage-600 cursor-pointer" htmlFor="family-only-toggle">
+                🏠 {t("recipes_family_only")}
+              </label>
+              {!familyId && <span className="text-[8px] text-amber-600 font-bold uppercase">{t("recipes_no_family")}</span>}
+            </div>
+            <input
+              id="family-only-toggle"
+              type="checkbox"
+              checked={isFamilyOnly && !!familyId}
+              disabled={!familyId}
+              onChange={(e) => setIsFamilyOnly(e.target.checked)}
+              className="w-5 h-5 rounded-lg border-sage-300 text-sage-600 focus:ring-sage-500 cursor-pointer disabled:opacity-30"
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <div className="space-y-4">
+            {language === 'ro' ? (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-sage-700 mb-1">{t("recipes_name_ro")}</label>
+                  <input
+                    type="text"
+                    value={nameRo}
+                    onChange={(e) => setNameRo(e.target.value)}
+                    className="input"
+                    placeholder={t("recipes_name_placeholder")}
+                  />
+                </div>
+                <div className="opacity-80">
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-sage-500 mb-1">{t("recipes_name")}</label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    className="input py-2 text-xs"
+                    placeholder={t("recipes_name_placeholder")}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-sage-700 mb-1">{t("recipes_name")}</label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    className="input"
+                    placeholder={t("recipes_name_placeholder")}
+                  />
+                </div>
+                <div className="opacity-80">
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-sage-500 mb-1">{t("recipes_name_ro")}</label>
+                  <input
+                    type="text"
+                    value={nameRo}
+                    onChange={(e) => setNameRo(e.target.value)}
+                    className="input py-2 text-xs"
+                    placeholder={t("recipes_name_placeholder")}
+                  />
+                </div>
+              </>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-sage-700 mb-1">{t("recipes_meal_type")}</label>
+              <select
+                value={mealType}
+                onChange={(e) => setMealType(e.target.value as MealType)}
+                className="input"
+              >
+                {(Object.keys(MEAL_LABELS) as MealType[]).map((key) => (
+                  <option key={key} value={key}>
+                    {t(key)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-sage-700 mb-1">{t("recipes_photo")}</label>
+              <div className="flex items-center gap-4">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept="image/*"
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="btn-secondary flex items-center gap-2"
+                >
+                  {isUploading ? (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-sage-300 border-t-sage-600" />
+                  ) : (
+                    `📷 ${t("recipes_select_photo")}`
+                  )}
+                </button>
+                {photoUrl && (
+                  <div className="relative h-16 w-16 overflow-hidden rounded-xl shadow-sm border border-sage-200">
+                    <img src={photoUrl} alt="Preview" className="absolute inset-0 h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setPhotoUrl("")}
+                      className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white z-10"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="mt-2">
+                <input
+                  type="url"
+                  value={photoUrl}
+                  onChange={(e) => setPhotoUrl(e.target.value)}
+                  className="input text-xs"
+                  placeholder="Or paste image URL here..."
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-4">
+            {language === 'ro' ? (
+              <>
+                <div className="flex-1 flex flex-col">
+                  <label className="block text-sm font-medium text-sage-700 mb-1">{t("recipes_instructions_ro")}</label>
+                  <textarea
+                    value={instructionsRo}
+                    onChange={(e) => setInstructionsRo(e.target.value)}
+                    className="input flex-grow min-h-[10rem] resize-none"
+                    placeholder={t("recipes_instructions_placeholder")}
+                  />
+                </div>
+                <div className="flex-1 flex flex-col opacity-80">
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-sage-500 mb-1">{t("recipes_instructions")}</label>
+                  <textarea
+                    value={instructions}
+                    onChange={(e) => setInstructions(e.target.value)}
+                    className="input flex-grow min-h-[6rem] resize-none text-xs"
+                    placeholder={t("recipes_instructions_placeholder")}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex-1 flex flex-col">
+                  <label className="block text-sm font-medium text-sage-700 mb-1">{t("recipes_instructions")}</label>
+                  <textarea
+                    value={instructions}
+                    onChange={(e) => setInstructions(e.target.value)}
+                    className="input flex-grow min-h-[10rem] resize-none"
+                    placeholder={t("recipes_instructions_placeholder")}
+                  />
+                </div>
+                <div className="flex-1 flex flex-col opacity-80">
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-sage-500 mb-1">{t("recipes_instructions_ro")}</label>
+                  <textarea
+                    value={instructionsRo}
+                    onChange={(e) => setInstructionsRo(e.target.value)}
+                    className="input flex-grow min-h-[6rem] resize-none text-xs"
+                    placeholder={t("recipes_instructions_placeholder")}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <label className="block text-sm font-medium text-sage-700">{t("recipes_ingredients")}</label>
+            <button
+              type="button"
+              onClick={() => setIngredients([...ingredients, { name: "", name_ro: "", quantity: 1, unit: "pcs/g/ml/l" }])}
+              className="text-xs font-bold text-sage-600 hover:text-sage-800 transition-colors flex items-center gap-1"
+            >
+              <span>➕ {t("recipes_add_item")}</span>
+            </button>
+          </div>
+          <div className="overflow-x-auto rounded-2xl border border-sage-100 bg-white/50">
+            <table className="w-full text-left text-sm font-mono">
+              <thead className="bg-sage-50/50 text-[10px] font-black uppercase tracking-widest text-sage-500">
+                <tr>
+                  {language === 'ro' ? (
+                    <>
+                      <th className="px-4 py-3">{t("recipes_ing_name")} (RO)</th>
+                      <th className="px-4 py-3">{t("recipes_ing_name")} (EN)</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="px-4 py-3">{t("recipes_ing_name")} (EN)</th>
+                      <th className="px-4 py-3">{t("recipes_ing_name")} (RO)</th>
+                    </>
+                  )}
+                  <th className="px-4 py-3 w-24">{t("recipes_qty")}</th>
+                  <th className="px-4 py-3 w-24">{t("recipes_unit")}</th>
+                  <th className="px-4 py-3 w-10"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-sage-50">
+                {ingredients.map((ing, idx) => (
+                  <tr key={idx} className="group hover:bg-sage-50/30 transition-colors">
+                    {language === 'ro' ? (
+                      <>
+                        <td className="px-4 py-2">
+                          <input
+                            type="text"
+                            value={ing.name_ro || ""}
+                            onChange={(e) => {
+                              const newIngs = [...ingredients];
+                              newIngs[idx].name_ro = e.target.value;
+                              setIngredients(newIngs);
+                            }}
+                            placeholder="Făină"
+                            className="w-full bg-transparent border-none focus:ring-0 p-0 text-sage-800 placeholder:text-sage-300"
+                          />
+                        </td>
+                        <td className="px-4 py-2">
+                          <input
+                            type="text"
+                            value={ing.name || ""}
+                            onChange={(e) => {
+                              const newIngs = [...ingredients];
+                              newIngs[idx].name = e.target.value;
+                              setIngredients(newIngs);
+                            }}
+                            placeholder="e.g. Flour"
+                            className="w-full bg-transparent border-none focus:ring-0 p-0 text-sage-800 placeholder:text-sage-300 italic text-xs"
+                          />
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="px-4 py-2">
+                          <input
+                            type="text"
+                            value={ing.name || ""}
+                            onChange={(e) => {
+                              const newIngs = [...ingredients];
+                              newIngs[idx].name = e.target.value;
+                              setIngredients(newIngs);
+                            }}
+                            placeholder="e.g. Flour"
+                            className="w-full bg-transparent border-none focus:ring-0 p-0 text-sage-800 placeholder:text-sage-300"
+                          />
+                        </td>
+                        <td className="px-4 py-2">
+                          <input
+                            type="text"
+                            value={ing.name_ro || ""}
+                            onChange={(e) => {
+                              const newIngs = [...ingredients];
+                              newIngs[idx].name_ro = e.target.value;
+                              setIngredients(newIngs);
+                            }}
+                            placeholder="Făină"
+                            className="w-full bg-transparent border-none focus:ring-0 p-0 text-sage-800 placeholder:text-sage-300 italic text-xs"
+                          />
+                        </td>
+                      </>
+                    )}
+                    <td className="px-4 py-2">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={ing.quantity ?? ""}
+                        onChange={(e) => {
+                          const newIngs = [...ingredients];
+                          newIngs[idx].quantity = e.target.value;
+                          setIngredients(newIngs);
+                        }}
+                        className="w-full bg-transparent border-none focus:ring-0 p-0 text-sage-800 placeholder:text-sage-300"
+                      />
+                    </td>
+                    <td className="px-4 py-2">
+                      <input
+                        type="text"
+                        value={ing.unit || ""}
+                        onChange={(e) => {
+                          const newIngs = [...ingredients];
+                          newIngs[idx].unit = e.target.value;
+                          setIngredients(newIngs);
+                        }}
+                        placeholder="g"
+                        className="w-full bg-transparent border-none focus:ring-0 p-0 text-sage-800 placeholder:text-sage-300 uppercase text-[10px] font-bold tracking-wider"
+                      />
+                    </td>
+                    <td className="px-4 py-2 text-right">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (ingredients.length > 1) {
+                            setIngredients(ingredients.filter((_, i) => i !== idx));
+                          } else {
+                            setIngredients([{ name: "", quantity: 1, unit: "pcs" }]);
+                          }
+                        }}
+                        className="opacity-0 group-hover:opacity-100 text-red-300 hover:text-red-500 transition-all p-1"
+                      >
+                        ✕
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <button type="submit" className="btn-primary w-full py-4 text-base font-bold shadow-lg shadow-sage-900/10" disabled={isUploading}>
+          {isUploading ? t("recipes_uploading") : editingRecipeId ? t("recipes_update") : t("recipes_save")}
+        </button>
+      </form>
+    );
+  }
 }
