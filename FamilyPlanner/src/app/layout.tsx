@@ -3,6 +3,8 @@ import { DM_Sans, Source_Sans_3 } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 
+export const dynamic = "force-dynamic";
+
 const dmSans = DM_Sans({
   subsets: ["latin"],
   variable: "--font-display",

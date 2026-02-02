@@ -145,6 +145,19 @@ export async function handleRequestAction(requestId: string, action: 'accepted' 
 
     if (!request) throw new Error("Request not found");
 
+    // Authorization: only the invited user can accept/reject an invite; only family admin can accept/reject join requests
+    if (request.type === "invite") {
+        if (request.email !== user.email) throw new Error("You can only act on your own invitation.");
+    } else if (request.type === "request") {
+        const { data: profile } = await supabase
+            .from("profiles")
+            .select("family_id, role")
+            .eq("id", user.id)
+            .single();
+        if (!profile || profile.family_id !== request.family_id || profile.role !== "admin")
+            throw new Error("Only the family admin can approve or decline join requests.");
+    }
+
     if (action === 'accepted') {
         // Find the user profile if it's an invite
         const { data: targetProfile } = await supabase
@@ -171,11 +184,25 @@ export async function handleRequestAction(requestId: string, action: 'accepted' 
 
 export async function getPendingRequests(familyId?: string, email?: string) {
     const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    // Authorization: when familyId provided, caller must be member (or admin) of that family; when email provided, must be own email
+    if (familyId) {
+        const { data: profile } = await supabase
+            .from("profiles")
+            .select("family_id")
+            .eq("id", user.id)
+            .single();
+        if (!profile || profile.family_id !== familyId) return [];
+    }
+    if (email !== undefined && email !== user.email) return [];
+
     let query = supabase.from("family_requests").select("*, families(name)").eq("status", "pending");
 
     if (familyId) query = query.eq("family_id", familyId).eq("type", "request");
     if (email) query = query.eq("email", email).eq("type", "invite");
 
-    const { data, error } = await query;
+    const { data } = await query;
     return data || [];
 }

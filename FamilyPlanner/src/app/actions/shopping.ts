@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserAndFamily } from "@/lib/auth";
-import type { DayPlan, Recipe, ShoppingItem } from "@/types";
+import type { DayPlan, Recipe, ShoppingItem, Ingredient } from "@/types";
 import type { MealType } from "@/types";
 
 const MEAL_KEYS: MealType[] = ["breakfast", "lunch", "dinner", "togo", "dessert"];
@@ -22,7 +22,7 @@ function aggregateIngredients(days: DayPlan[], recipeMap: Map<string, Recipe>): 
         if (!recipe?.ingredients) continue;
 
         // Use a helper to get the Romanian name if available
-        const getRoName = (index: number, ing: any) => {
+        const getRoName = (index: number, ing: Ingredient) => {
           if (ing.name_ro) return ing.name_ro;
           if (recipe.ingredients_ro && Array.isArray(recipe.ingredients_ro)) {
             return recipe.ingredients_ro[index]?.name;

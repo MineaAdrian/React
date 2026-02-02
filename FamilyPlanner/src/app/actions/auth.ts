@@ -5,13 +5,19 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 
+function getString(formData: FormData, key: string): string {
+  const v = formData.get(key);
+  return typeof v === "string" ? v.trim() : "";
+}
+
 export async function signUp(formData: FormData) {
   const supabase = await createClient();
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-  const name = (formData.get("name") as string) || undefined;
-  const familyName = (formData.get("familyName") as string) || undefined;
-  const familyId = (formData.get("familyId") as string) || undefined;
+  const email = getString(formData, "email");
+  const password = getString(formData, "password");
+  const name = getString(formData, "name") || undefined;
+  const familyName = getString(formData, "familyName") || undefined;
+  const familyId = getString(formData, "familyId") || undefined;
+  if (!email || !password) return { error: "Email and password are required." };
 
   const origin = (await headers()).get("origin");
   const callbackUrl = origin ? `${origin}/auth/callback` : `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`;
@@ -43,8 +49,9 @@ export async function signUp(formData: FormData) {
 
 export async function signIn(formData: FormData) {
   const supabase = await createClient();
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
+  const email = getString(formData, "email");
+  const password = getString(formData, "password");
+  if (!email || !password) return { error: "Email and password are required." };
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 

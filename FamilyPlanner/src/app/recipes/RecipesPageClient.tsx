@@ -39,7 +39,7 @@ export function RecipesPageClient({ familyId }: Props) {
       setRecipes(r);
       setLoading(false);
     });
-  }, []);
+  }, [familyId]);
 
   const handleEdit = (recipe: Recipe) => {
     setEditingRecipeId(recipe.id);
@@ -50,7 +50,6 @@ export function RecipesPageClient({ familyId }: Props) {
     setInstructionsRo(recipe.instructions_ro || "");
     setIsFamilyOnly(!!recipe.family_id);
     setIngredients(recipe.ingredients.map(ing => ({ ...ing })));
-    setPhotoUrl(recipe.photo_url || "");
     setPhotoUrl(recipe.photo_url || "");
     setShowForm(true);
     setViewingRecipe(null);
@@ -217,7 +216,7 @@ export function RecipesPageClient({ familyId }: Props) {
                   <h3 className="text-xs font-black uppercase tracking-widest text-sage-400 mb-3">{t("recipes_ingredients")}</h3>
                   <ul className="space-y-2">
                     {viewingRecipe.ingredients.map((ing, i) => {
-                      const roName = ing.name_ro || (viewingRecipe.ingredients_ro as any)?.[i]?.name;
+                      const roName = ing.name_ro || viewingRecipe.ingredients_ro?.[i]?.name;
                       return (
                         <li key={i} className="flex justify-between text-sm">
                           <span className="font-medium text-sage-800">

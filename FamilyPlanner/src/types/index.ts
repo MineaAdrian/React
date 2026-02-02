@@ -16,6 +16,24 @@ export interface Family {
   created_at: string;
 }
 
+/** Profile row as returned for settings members list */
+export interface FamilyMemberRow {
+  id: string;
+  name: string | null;
+  email: string | null;
+  role: string;
+}
+
+/** Family request/invitation row from DB (with optional families relation) */
+export interface FamilyRequestRow {
+  id: string;
+  family_id: string;
+  email: string;
+  type: "request" | "invite";
+  status: string;
+  families?: { name: string } | null;
+}
+
 // Recipe
 export type MealType = "breakfast" | "lunch" | "dinner" | "togo" | "dessert";
 
@@ -26,13 +44,16 @@ export interface Ingredient {
   unit: string; // g, ml, pcs, etc.
 }
 
+/** Romanian/localized ingredient row (same shape as Ingredient) */
+export type IngredientRo = { name: string; quantity: number; unit: string };
+
 export interface Recipe {
   id: string;
   name: string;
   name_ro?: string;
   meal_type: MealType;
   ingredients: Ingredient[];
-  ingredients_ro?: any;
+  ingredients_ro?: IngredientRo[];
   instructions: string;
   instructions_ro?: string;
   family_id: string | null; // null = global

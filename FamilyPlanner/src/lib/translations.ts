@@ -107,6 +107,7 @@ export type TranslationKey =
     | "settings_remove_member"
     | "settings_no_family_hint"
     | "settings_invited_title"
+    | "settings_invited_to_join"
     | "settings_accept"
     | "settings_ignore"
     | "settings_invite_new"
@@ -216,6 +217,7 @@ export const translations: Record<Language, Record<TranslationKey, string>> = {
         settings_remove_member: "Remove",
         settings_no_family_hint: "You are not in a family. Use the \"Join Family\" tab to get started.",
         settings_invited_title: "You're Invited!",
+        settings_invited_to_join: "You were invited to join",
         settings_accept: "Accept",
         settings_ignore: "Ignore",
         settings_invite_new: "Invite New Member",
@@ -327,6 +329,7 @@ export const translations: Record<Language, Record<TranslationKey, string>> = {
         settings_remove_member: "Elimină",
         settings_no_family_hint: "Nu ești într-o familie. Folosește tab-ul \"Alătură-te\" pentru a începe.",
         settings_invited_title: "Ai o invitație!",
+        settings_invited_to_join: "Ai fost invitat să te alături",
         settings_accept: "Acceptă",
         settings_ignore: "Ignoră",
         settings_invite_new: "Invită Membru Nou",
