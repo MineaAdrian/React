@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 
 export async function signUp(formData: FormData) {
@@ -12,10 +13,14 @@ export async function signUp(formData: FormData) {
   const familyName = (formData.get("familyName") as string) || undefined;
   const familyId = (formData.get("familyId") as string) || undefined;
 
-  const { error } = await supabase.auth.signUp({
+  const origin = (await headers()).get("origin");
+  const callbackUrl = origin ? `${origin}/auth/callback` : `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`;
+
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
+      emailRedirectTo: callbackUrl,
       data: {
         name,
         family_name: familyName,
@@ -26,6 +31,10 @@ export async function signUp(formData: FormData) {
 
   if (error) {
     return { error: error.message };
+  }
+
+  if (!data.session) {
+    return { success: true, message: "Please check your email to confirm your account." };
   }
 
   revalidatePath("/", "layout");
@@ -87,15 +96,39 @@ export async function ensureFamilyFromMetadata(): Promise<boolean> {
 
   // 3. Setup Family (Join or Create)
   if (familyId) {
-    const { error } = await supabase
-      .from("profiles")
-      .update({ family_id: familyId, role: "member" })
-      .eq("id", user.id);
-    return !error;
+    console.log("Attempting to join family:", familyId);
+
+    // Verify family exists
+    const { data: familyExists } = await supabase
+      .from("families")
+      .select("id")
+      .eq("id", familyId)
+      .maybeSingle();
+
+    if (!familyExists) {
+      console.error("Family ID not found:", familyId);
+      // Fallback to creating a new one or show error? 
+      // For now, let's just log and continue to create a new one as fallback
+      console.log("Falling back to creating a new family...");
+    } else {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ family_id: familyId, role: "member" })
+        .eq("id", user.id);
+
+      if (error) {
+        console.error("Error joining family:", error.message);
+        return false;
+      }
+
+      console.log("Successfully joined family:", familyId);
+      return true;
+    }
   }
 
   // Create a new family (Use metadata or a default if missing)
   const finalFamilyName = familyName?.trim() || `${user.user_metadata?.name || 'My'}'s Family`;
+  console.log("Creating new family:", finalFamilyName);
 
   const { data: family, error: familyError } = await supabase
     .from("families")
@@ -104,9 +137,11 @@ export async function ensureFamilyFromMetadata(): Promise<boolean> {
     .single();
 
   if (familyError || !family) {
-    console.error("Error creating family:", familyError);
+    console.error("Error creating family:", familyError?.message || "No family returned");
     return false;
   }
+
+  console.log("New family created with ID:", family.id);
 
   // Set as ADMIN for the new family
   const { error: profileError } = await supabase
@@ -114,7 +149,13 @@ export async function ensureFamilyFromMetadata(): Promise<boolean> {
     .update({ family_id: family.id, role: "admin" })
     .eq("id", user.id);
 
-  return !profileError;
+  if (profileError) {
+    console.error("Error linking profile to new family:", profileError.message);
+    return false;
+  }
+
+  console.log("Profile linked to family as admin successfully");
+  return true;
 }
 
 export async function signOut() {

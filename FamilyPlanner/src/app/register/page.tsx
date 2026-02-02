@@ -2,16 +2,31 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { clsx } from "clsx";
 import { signUp } from "@/app/actions/auth";
 
 export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [familyMode, setFamilyMode] = useState<"join" | "create">("create");
+  const [familyId, setFamilyId] = useState("");
+  const [familyName, setFamilyName] = useState("");
+
+  const isUuidValid = (uuid: string) => {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uuid);
+  };
+
+  const isSubmitDisabled = familyMode === "join" && !isUuidValid(familyId);
 
   async function handleSubmit(formData: FormData) {
     setError(null);
+    setMessage(null);
     const result = await signUp(formData);
-    if (result?.error) setError(result.error);
+    if (result?.error) {
+      setError(result.error);
+    } else if (result?.success) {
+      setMessage(result.message);
+    }
   }
 
   return (
@@ -96,7 +111,7 @@ export default function RegisterPage() {
             </div>
 
             {familyMode === "create" ? (
-              <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+              <div key="create-mode" className="animate-in fade-in slide-in-from-top-2 duration-300">
                 <label htmlFor="familyName" className="block text-sm font-medium text-sage-700 mb-1">
                   Family Name
                 </label>
@@ -104,6 +119,8 @@ export default function RegisterPage() {
                   id="familyName"
                   name="familyName"
                   type="text"
+                  value={familyName}
+                  onChange={(e) => setFamilyName(e.target.value)}
                   required={familyMode === "create"}
                   className="input w-full"
                   placeholder="The Smiths"
@@ -113,7 +130,7 @@ export default function RegisterPage() {
                 </p>
               </div>
             ) : (
-              <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+              <div key="join-mode" className="animate-in fade-in slide-in-from-top-2 duration-300">
                 <label htmlFor="familyId" className="block text-sm font-medium text-sage-700 mb-1">
                   Family ID
                 </label>
@@ -121,10 +138,20 @@ export default function RegisterPage() {
                   id="familyId"
                   name="familyId"
                   type="text"
+                  value={familyId || ""}
+                  onChange={(e) => setFamilyId(e.target.value)}
                   required={familyMode === "join"}
-                  className="input w-full"
+                  className={clsx(
+                    "input w-full",
+                    (familyId || "") && !isUuidValid(familyId) && "border-red-300 focus:border-red-400 focus:ring-red-100"
+                  )}
                   placeholder="Enter the UUID shared with you"
                 />
+                {(familyId || "") && !isUuidValid(familyId) && (
+                  <p className="text-[10px] text-red-500 font-bold uppercase tracking-tight mt-1">
+                    Invalid Family ID format
+                  </p>
+                )}
                 <p className="text-xs text-sage-500 mt-2">
                   Ask your family admin for their <strong>Family ID</strong> in Settings.
                 </p>
@@ -136,9 +163,27 @@ export default function RegisterPage() {
             <p className="text-sm text-red-600 bg-red-50 rounded-lg p-2 animate-in shake-1 underline-offset-4">{error}</p>
           )}
 
-          <button type="submit" className="btn-primary w-full py-3 text-base font-semibold mt-2">
-            Create Account
-          </button>
+          {message ? (
+            <div className="bg-green-50 border border-green-100 rounded-xl p-6 text-center animate-in fade-in zoom-in duration-500">
+              <div className="text-2xl mb-2">✉️</div>
+              <p className="text-sm font-medium text-green-800 mb-1">{message}</p>
+              <p className="text-xs text-green-600">Once confirmed, you will be able to sign in.</p>
+              <Link href="/login" className="btn-primary block w-full py-3 mt-4 text-sm font-semibold">
+                Go to Login
+              </Link>
+            </div>
+          ) : (
+            <button
+              type="submit"
+              disabled={isSubmitDisabled}
+              className={clsx(
+                "btn-primary w-full py-3 text-base font-semibold mt-2 transition-all",
+                isSubmitDisabled && "opacity-50 cursor-not-allowed grayscale"
+              )}
+            >
+              Create Account
+            </button>
+          )}
         </form>
 
         <p className="mt-6 text-center text-sm text-sage-600">
@@ -152,6 +197,3 @@ export default function RegisterPage() {
   );
 }
 
-function clsx(...classes: string[]) {
-  return classes.filter(Boolean).join(" ");
-}

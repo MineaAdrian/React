@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserAndFamily } from "@/lib/auth";
@@ -232,18 +233,30 @@ export async function syncShoppingList(weekStartStr: string) {
 
   // Deletions
   if (itemsToDelete.length > 0) {
-    for (const item of itemsToDelete) {
-      try {
-        await supabase
+    // Delete items by creating sets of names and units to match
+    // Supabase doesn't support multiple filters in a single call easily for (name AND unit), 
+    // but we can delete them in a way that targets the specific combinations.
+    // For simplicity and since we want to be safe, we'll delete by IDs if we had them, 
+    // but here we use ingredient_name and unit.
+
+    // We can use a single delete with OR if Supabase allowed it easily, but .in() is better for single columns.
+    // Since we have composite keys, we can use a single call with a match if we use an array of objects for the filter in postgrest, but supabase-js delete doesn't support that directly in one call for multiple rows easily without multiple calls or a RPC.
+
+    // HOWEVER, we can at least group them by something.
+    // Given the abort error, let's just make them parallel instead of sequential to speed up,
+    // and use more efficient Supabase syntax where possible.
+    try {
+      await Promise.all(itemsToDelete.map(item =>
+        supabase
           .from("shopping_items")
           .delete()
           .eq("family_id", familyId)
           .eq("week_start", weekStartStr)
           .eq("ingredient_name", item.ingredient_name)
-          .eq("unit", item.unit);
-      } catch (delErr) {
-        console.warn("Failed to delete shopping item:", item.ingredient_name, delErr);
-      }
+          .eq("unit", item.unit)
+      ));
+    } catch (delErr) {
+      console.warn("Batch delete failed", delErr);
     }
   }
 
@@ -287,6 +300,7 @@ export async function syncShoppingList(weekStartStr: string) {
     }
   }
 
+  revalidatePath("/shopping");
   return getShoppingList(weekStartStr);
 }
 
@@ -380,6 +394,7 @@ export async function toggleShoppingItem(
       .eq("week_start", weekStartStr)
       .eq("ingredient_name", ingredientName)
       .eq("unit", unit);
+    revalidatePath("/shopping");
     return { ok: true };
   }
 }
@@ -458,6 +473,7 @@ export async function addManualShoppingItem(
         recipe_ids: [],
       });
     }
+    revalidatePath("/shopping");
     return { ok: true };
   }
 }
@@ -494,6 +510,7 @@ export async function deleteShoppingItem(
       .eq("week_start", weekStartStr)
       .eq("ingredient_name", ingredientName)
       .eq("unit", unit);
+    revalidatePath("/shopping");
     return { ok: true };
   }
 }

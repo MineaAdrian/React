@@ -525,7 +525,7 @@ export function RecipesPageClient({ familyId }: Props) {
                           <td className="px-4 py-2">
                             <input
                               type="text"
-                              value={ing.name}
+                              value={ing.name || ""}
                               onChange={(e) => {
                                 const newIngs = [...ingredients];
                                 newIngs[idx].name = e.target.value;
@@ -541,7 +541,7 @@ export function RecipesPageClient({ familyId }: Props) {
                           <td className="px-4 py-2">
                             <input
                               type="text"
-                              value={ing.name}
+                              value={ing.name || ""}
                               onChange={(e) => {
                                 const newIngs = [...ingredients];
                                 newIngs[idx].name = e.target.value;
@@ -570,7 +570,7 @@ export function RecipesPageClient({ familyId }: Props) {
                         <input
                           type="text"
                           inputMode="decimal"
-                          value={ing.quantity}
+                          value={ing.quantity ?? ""}
                           onChange={(e) => {
                             const newIngs = [...ingredients];
                             newIngs[idx].quantity = e.target.value;
@@ -582,7 +582,7 @@ export function RecipesPageClient({ familyId }: Props) {
                       <td className="px-4 py-2">
                         <input
                           type="text"
-                          value={ing.unit}
+                          value={ing.unit || ""}
                           onChange={(e) => {
                             const newIngs = [...ingredients];
                             newIngs[idx].unit = e.target.value;
