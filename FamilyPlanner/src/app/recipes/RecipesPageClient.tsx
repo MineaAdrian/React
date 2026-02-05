@@ -639,6 +639,13 @@ function RecipeDetailsView({ recipe, profile, onCancel, onEdit, onDelete, onRepo
 
   React.useEffect(() => {
     const check = () => {
+      // Family recipes are always editable by the creator (no timer)
+      if (recipe.family_id) {
+        setCanEdit(true);
+        setTimeLeft(null);
+        return;
+      }
+
       const createdTime = new Date(recipe.created_at).getTime();
       const now = Date.now();
       const tenMinutes = 10 * 60 * 1000;
@@ -657,7 +664,7 @@ function RecipeDetailsView({ recipe, profile, onCancel, onEdit, onDelete, onRepo
     check();
     const interval = setInterval(check, 1000);
     return () => clearInterval(interval);
-  }, [recipe.created_at]);
+  }, [recipe.created_at, recipe.family_id]);
 
   return (
     <div className="space-y-8 p-6 sm:p-10 relative">
@@ -688,7 +695,7 @@ function RecipeDetailsView({ recipe, profile, onCancel, onEdit, onDelete, onRepo
                 </h2>
               </div>
               <div className="flex gap-2">
-                {profile?.id === recipe.created_by && canEdit ? (
+                {(profile?.id === recipe.created_by || recipe.family_id) && canEdit ? (
                   <div className="flex gap-2">
                     <button
                       onClick={() => onEdit(recipe)}

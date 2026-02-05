@@ -167,6 +167,13 @@ export function MealSection({ dayPlan, recipes, weekStartStr, onUpdate }: MealSe
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-sage-900/60 via-transparent to-transparent" />
                 <button
+                  onClick={() => setIsExpanded(true)}
+                  className="absolute top-6 right-20 h-10 w-10 rounded-full bg-white/20 text-white backdrop-blur-xl hover:bg-white/40 transition-all flex items-center justify-center font-bold border border-white/20"
+                  title={t("view_details")}
+                >
+                  ⛶
+                </button>
+                <button
                   onClick={() => setSelectedRecipe(null)}
                   className="absolute top-6 right-6 h-10 w-10 rounded-full bg-white/20 text-white backdrop-blur-xl hover:bg-white/40 transition-all flex items-center justify-center font-bold border border-white/20"
                 >

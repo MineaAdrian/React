@@ -17,10 +17,17 @@ export function RecipeCard({ recipe, currentUserId, onSelect, onEdit, onDelete, 
   const { t, language } = useTranslation();
   const [isEditable, setIsEditable] = useState(false);
   const [timeLeft, setTimeLeft] = useState<string | null>(null);
-  const isCreator = !!(currentUserId && recipe.created_by === currentUserId);
+  const canModify = !!(currentUserId && (recipe.created_by === currentUserId || recipe.family_id));
 
   useEffect(() => {
     const checkEditable = () => {
+      // Family recipes are always editable by the creator (no timer)
+      if (recipe.family_id) {
+        setIsEditable(true);
+        setTimeLeft(null);
+        return;
+      }
+
       const createdTime = new Date(recipe.created_at).getTime();
       const now = Date.now();
       const tenMinutes = 10 * 60 * 1000;
@@ -40,7 +47,7 @@ export function RecipeCard({ recipe, currentUserId, onSelect, onEdit, onDelete, 
     checkEditable();
     const interval = setInterval(checkEditable, 1000);
     return () => clearInterval(interval);
-  }, [recipe.created_at]);
+  }, [recipe.created_at, recipe.family_id]);
 
   const handleReport = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -97,7 +104,7 @@ export function RecipeCard({ recipe, currentUserId, onSelect, onEdit, onDelete, 
       </div>
 
       <div className="absolute right-2 bottom-2 flex gap-1 z-10">
-        {isCreator && isEditable ? (
+        {canModify && isEditable ? (
           <div className="flex gap-1">
             {onEdit && (
               <button
