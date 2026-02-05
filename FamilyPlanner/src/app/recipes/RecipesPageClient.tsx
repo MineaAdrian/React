@@ -10,9 +10,9 @@ import { useTranslation } from "@/hooks/useTranslation";
 import type { Recipe } from "@/types";
 import type { MealType } from "@/types";
 
-type Props = { familyId: string | null };
+type Props = { familyId: string | null; userId: string };
 
-export function RecipesPageClient({ familyId }: Props) {
+export function RecipesPageClient({ familyId, userId }: Props) {
   const { profile } = useAuth();
   const { t, language } = useTranslation();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -268,7 +268,7 @@ export function RecipesPageClient({ familyId }: Props) {
           <RecipeCard
             key={recipe.id}
             recipe={recipe}
-            currentUserId={profile?.id}
+            currentUserId={userId || profile?.id}
             onSelect={() => handleView(recipe)}
             onEdit={() => handleEdit(recipe)}
             onDelete={() => handleDelete(recipe.id)}

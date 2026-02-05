@@ -20,7 +20,7 @@ export default async function RecipesPage() {
       <Nav />
       <main className="mx-auto max-w-6xl px-4 py-6">
         <Suspense fallback={<div>Loading...</div>}>
-          <RecipesPageClient familyId={profile?.family_id ?? null} />
+          <RecipesPageClient familyId={profile?.family_id ?? null} userId={user.id} />
         </Suspense>
       </main>
     </>
