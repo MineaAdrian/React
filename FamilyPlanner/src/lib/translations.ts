@@ -150,7 +150,7 @@ export const translations: Record<Language, Record<TranslationKey, string>> = {
         recipes_search_placeholder: "Search recipes by name or ingredient...",
         recipes_create: "Create New Recipe",
         recipes_edit: "Edit Recipe",
-        recipes_family_only: "Family Only",
+        recipes_family_only: "Family recipes",
         recipes_no_family: "No family joined yet",
         recipes_name: "Name",
         recipes_name_ro: "Name (RO)",

@@ -9,8 +9,46 @@ import type { MealType } from "@/types";
 
 const MEAL_KEYS: MealType[] = ["breakfast", "lunch", "dinner", "togo", "dessert"];
 
+// Helper to normalize strings for comparison (remove punctuation, standard case)
+function normalizeString(s: string): string {
+  return s.toLowerCase()
+    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "") // Remove punctuation
+    .replace(/\s{2,}/g, " ") // Normalize spaces
+    .trim();
+}
+
+// Helper to normalize units
+function normalizeUnit(u: string): string {
+  const s = normalizeString(u);
+  // Map common variations
+  const map: Record<string, string> = {
+    "tsp": "tsp", "teaspoon": "tsp", "teaspoons": "tsp",
+    "tbsp": "tbsp", "tablespoon": "tbsp", "tablespoons": "tbsp", "tbs": "tbsp", "tbl": "tbsp",
+    "g": "g", "gr": "g", "gram": "g", "grams": "g",
+    "kg": "kg", "kilogram": "kg", "kilograms": "kg",
+    "mg": "mg", "milligram": "mg", "milligrams": "mg",
+    "ml": "ml", "milliliter": "ml", "milliliters": "ml",
+    "l": "l", "liter": "l", "liters": "l", "lit": "l",
+    "oz": "oz", "ounce": "oz", "ounces": "oz",
+    "lb": "lb", "lbs": "lb", "pound": "lb", "pounds": "lb",
+    "cup": "cup", "cups": "cup", "c": "cup",
+    "pcs": "pcs", "piece": "pcs", "pieces": "pcs", "pc": "pcs",
+    "pinch": "pinch", "pinches": "pinch",
+    "pkg": "pkg", "pack": "pkg", "packet": "pkg", "package": "pkg", "packages": "pkg",
+    "jar": "jar", "jars": "jar",
+    "can": "can", "cans": "can",
+    "bottle": "bottle", "bottles": "bottle",
+    "slice": "slice", "slices": "slice",
+    "clove": "clove", "cloves": "clove",
+    "bag": "bag", "bags": "bag",
+    "bunch": "bunch", "bunches": "bunch"
+  };
+  return map[s] || s; // Return mapped value or original normalized value
+}
+
 function aggregateIngredients(days: DayPlan[], recipeMap: Map<string, Recipe>): ShoppingItem[] {
-  const map = new Map<string, { quantity: number; unit: string; recipeIds: Set<string>; nameRo?: string }>();
+  // Step 1: Aggregate by (NormalizedName + NormalizedUnit)
+  const map = new Map<string, { quantity: number; unit: string; recipeIds: Set<string>; nameEn: string; nameRo?: string, baseKey: string }>();
 
   for (const day of days) {
     for (const key of MEAL_KEYS) {
@@ -21,7 +59,6 @@ function aggregateIngredients(days: DayPlan[], recipeMap: Map<string, Recipe>): 
         const recipe = recipeMap.get(rid);
         if (!recipe?.ingredients) continue;
 
-        // Use a helper to get the Romanian name if available
         const getRoName = (index: number, ing: Ingredient) => {
           if (ing.name_ro) return ing.name_ro;
           if (recipe.ingredients_ro && Array.isArray(recipe.ingredients_ro)) {
@@ -31,21 +68,35 @@ function aggregateIngredients(days: DayPlan[], recipeMap: Map<string, Recipe>): 
         };
 
         recipe.ingredients.forEach((ing, index) => {
-          // Ensure quantity is always a number (handle malformed data)
           let quantity = 0;
           if (typeof ing.quantity === 'number') {
             quantity = ing.quantity;
           } else if (typeof ing.quantity === 'string') {
-            const parsed = parseFloat(ing.quantity);
-            if (!isNaN(parsed)) {
-              quantity = parsed;
+            const s = (ing.quantity as string).trim();
+            if (s === "") {
+              quantity = 0;
             } else {
-              console.warn(`[aggregateIngredients] Invalid quantity for ingredient "${ing.name}": "${ing.quantity}". Using 0.`);
+              const parsed = parseFloat(s);
+              if (!isNaN(parsed)) {
+                quantity = parsed;
+              } else {
+                console.warn(`[aggregateIngredients] Invalid quantity: "${ing.quantity}". Using 0.`);
+              }
             }
           }
 
           const roName = getRoName(index, ing);
-          const k = `${ing.name.toLowerCase().trim()}|${ing.unit}`;
+
+          // Use aggressive normalization for key generation
+          const normalizedEnName = normalizeString(ing.name);
+          const normalizedRoName = roName ? normalizeString(roName) : undefined;
+
+          const names = [normalizedEnName, normalizedRoName].filter(Boolean).sort();
+          const baseKey = names.join('||'); // This key identifies the distinct ingredient
+
+          const normUnit = normalizeUnit(ing.unit);
+          const k = `${baseKey}|${normUnit}`; // Key discriminates by NORMALIZED unit
+
           const cur = map.get(k);
           if (cur) {
             cur.quantity += quantity;
@@ -54,9 +105,11 @@ function aggregateIngredients(days: DayPlan[], recipeMap: Map<string, Recipe>): 
           } else {
             map.set(k, {
               quantity,
-              unit: ing.unit,
+              unit: normUnit, // Store the normalized unit for consistency
               recipeIds: new Set([rid]),
+              nameEn: ing.name, // Keep original display name
               nameRo: roName,
+              baseKey
             });
           }
         });
@@ -64,18 +117,61 @@ function aggregateIngredients(days: DayPlan[], recipeMap: Map<string, Recipe>): 
     }
   }
 
-  return Array.from(map.entries()).map(([k, v]) => {
-    const [ingredient_name] = k.split("|");
-    return {
-      ingredient_name,
-      ingredient_name_ro: v.nameRo,
-      total_quantity: v.quantity,
-      unit: v.unit,
-      checked: false,
-      checked_by: [] as string[],
-      recipe_ids: Array.from(v.recipeIds),
-    };
-  });
+  // Step 2: Post-process to merge/cleanup duplicates for the same ingredient (baseKey)
+  // Group all entries by baseKey
+  const byBaseKey = new Map<string, typeof map extends Map<any, infer V> ? V[] : never>();
+  for (const val of map.values()) {
+    const list = byBaseKey.get(val.baseKey) ?? [];
+    list.push(val);
+    byBaseKey.set(val.baseKey, list);
+  }
+
+  const finalItems: ShoppingItem[] = [];
+
+  for (const [_, entries] of byBaseKey) {
+    // If we have multiple entries for the same ingredient (e.g. different units),
+    // we try to clean up "0" quantities if a better alternative exists.
+
+    const hasPositiveQty = entries.some(e => e.quantity > 0);
+
+    if (entries.length > 1 && hasPositiveQty) {
+      // Filter out entries with 0 quantity if we have valid ones
+      const validEntries = entries.filter(e => e.quantity > 0);
+      validEntries.forEach(val => {
+        finalItems.push({
+          ingredient_name: val.nameEn,
+          ingredient_name_ro: val.nameRo,
+          total_quantity: val.quantity,
+          unit: val.unit,
+          checked: false,
+          checked_by: [] as string[],
+          recipe_ids: Array.from(val.recipeIds),
+        });
+      });
+    } else {
+      // Either single entry OR all are 0. Keep all (or the single one).
+      // If we have multiple 0s with different units (e.g. tsp vs tbsp) but all 0 quantity,
+      // we might want to consolidate them, but it's simpler to keep one to avoid data loss.
+      // Prioritize the one with the most common unit if possible, or just the first.
+
+      // Better yet, if we have "salt tsp: 0" and "salt pinch: 0", just show one.
+      const uniqueEntries = entries.length > 1 && !hasPositiveQty ? [entries[0]] : entries;
+
+      uniqueEntries.forEach(val => {
+        finalItems.push({
+          ingredient_name: val.nameEn,
+          ingredient_name_ro: val.nameRo,
+          total_quantity: val.quantity,
+          unit: val.unit,
+          checked: false,
+          checked_by: [] as string[],
+          recipe_ids: Array.from(val.recipeIds),
+        });
+      });
+    }
+  }
+
+  return finalItems;
 }
 
 function rowToItemFromSupabase(row: Record<string, unknown>): ShoppingItem {
@@ -131,26 +227,22 @@ export async function syncShoppingList(weekStartStr: string) {
 
   const weekStart = new Date(weekStartStr);
 
-  // 1. Get Plan and Recipes - Use Supabase directly for consistency
-  // (Recipes are created via Supabase, so we should read from Supabase too)
+  // 1. Get Plan and Recipes - Use Supabase directly for consistency (Recipies) but Prisma for Plan (Consistency with write)
   let days: DayPlan[] = [];
   const recipeMap = new Map<string, Recipe>();
 
-  const supabase = await createClient();
+  // Use Prisma to fetch the plan ensuring Read-Your-Writes consistency
+  // assignMeal writes via Prisma, so we must read via Prisma to see the change immediately.
+  const plan = await prisma.weekPlan.findUnique({
+    where: {
+      familyId_startDate: {
+        familyId,
+        startDate: new Date(weekStartStr)
+      }
+    }
+  });
 
-  // Fetch week plan from Supabase
-  const { data: plan, error: planError } = await supabase
-    .from("week_plans")
-    .select("days")
-    .eq("family_id", familyId)
-    .eq("start_date", weekStartStr)
-    .maybeSingle();
-
-  if (planError) {
-    console.error("[syncShoppingList] Error fetching week plan:", planError);
-  }
-
-  days = (plan?.days as DayPlan[]) ?? [];
+  days = (plan?.days as unknown as DayPlan[]) ?? [];
   console.log("[syncShoppingList] Found", days.length, "days in plan");
 
   // Extract recipe IDs from the plan
@@ -165,7 +257,8 @@ export async function syncShoppingList(weekStartStr: string) {
   });
   console.log("[syncShoppingList] Recipe IDs in plan:", Array.from(recipeIds));
 
-  // Fetch recipes from Supabase
+  // Fetch recipes from Supabase (Recipes are less mutable, Supabase is fine/better for potentially large list)
+  const supabase = await createClient();
   if (recipeIds.size > 0) {
     const { data: dbRecipes, error: recipeError } = await supabase
       .from("recipes")
@@ -203,7 +296,10 @@ export async function syncShoppingList(weekStartStr: string) {
   }
 
   // 3. Get existing to preserve checked status and identify deletions
+  console.log("[syncShoppingList] Fetching current list from DB...");
   const currentList = await getShoppingList(weekStartStr);
+  console.log("[syncShoppingList] Fetched current list, items:", currentList.items.length);
+
   const existingByKey = new Map(
     currentList.items.map(item => [`${item.ingredient_name}|${item.unit}`, item])
   );
@@ -233,6 +329,7 @@ export async function syncShoppingList(weekStartStr: string) {
 
   // Deletions
   if (itemsToDelete.length > 0) {
+    console.log("[syncShoppingList] Processing deletions...");
     // Delete items by creating sets of names and units to match
     // Supabase doesn't support multiple filters in a single call easily for (name AND unit), 
     // but we can delete them in a way that targets the specific combinations.

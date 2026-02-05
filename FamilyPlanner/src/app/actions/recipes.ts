@@ -28,13 +28,16 @@ function toRecipe(r: {
   createdAt?: Date;
   created_at?: string;
 }): Recipe {
-  const mt = r.mealType ?? r.meal_type ?? "dinner";
+  const primaryMt = r.mealType ?? r.meal_type ?? "dinner";
+  // The DB stores the full array in tags. We prefer that for the multi-label UI.
+  const meal_type = (r.tags && r.tags.length > 0) ? r.tags : [primaryMt];
+
   const created = r.createdAt ?? (r.created_at ? new Date(r.created_at) : new Date());
   return {
     id: r.id,
     name: r.name,
     name_ro: r.name_ro,
-    meal_type: mt as MealType,
+    meal_type: meal_type as MealType[],
     ingredients: (r.ingredients as Recipe["ingredients"]) ?? [],
     ingredients_ro: r.ingredients_ro as Recipe["ingredients_ro"],
     instructions: r.instructions ?? "",
@@ -65,7 +68,7 @@ export async function getRecipes(): Promise<Recipe[]> {
 
 export async function createRecipe(
   name: string,
-  mealType: MealType,
+  mealType: MealType | MealType[],
   ingredients: Recipe["ingredients"],
   instructions: string,
   familyIdInput: string | null,
@@ -73,7 +76,7 @@ export async function createRecipe(
   name_ro?: string,
   instructions_ro?: string,
   ingredients_ro?: IngredientRo[]
-): Promise<string> {
+): Promise<Recipe | string> {
   const { userId, familyId: userFamilyId } = await getCurrentUserAndFamily();
   // If familyIdInput is explicitly null, it means its a public recipe.
   // if its undefined (not passed), we use the user's family.
@@ -87,12 +90,15 @@ export async function createRecipe(
       user_id: userId,
       name,
       name_ro,
-      meal_type: mealType,
+      // For DB compatibility: send first item to a column with string constraint
+      meal_type: Array.isArray(mealType) ? (mealType[0] || 'dinner') : mealType,
       ingredients,
       ingredients_ro,
       instructions,
       instructions_ro,
       photo_url: photoUrl || null,
+      // Store full list in tags (no constraint)
+      tags: Array.isArray(mealType) ? mealType : [mealType],
     })
     .select("id")
     .single();
@@ -101,8 +107,19 @@ export async function createRecipe(
     console.error("Error creating recipe via Supabase:", error);
     throw error;
   }
-  if (!data?.id) throw new Error("Failed to create recipe");
-  return data.id;
+
+  const { data: fullRecipe, error: fetchError } = await supabase
+    .from("recipes")
+    .select("*")
+    .eq("id", data.id)
+    .single();
+
+  if (fetchError || !fullRecipe) {
+    console.error("Error fetching created recipe:", fetchError);
+    return data.id;
+  }
+
+  return toRecipe(fullRecipe as any);
 }
 
 export async function uploadRecipePhoto(formData: FormData): Promise<string> {
@@ -142,7 +159,7 @@ export async function uploadRecipePhoto(formData: FormData): Promise<string> {
 export async function updateRecipe(
   id: string,
   name: string,
-  mealType: MealType,
+  mealType: MealType | MealType[],
   ingredients: Recipe["ingredients"],
   instructions: string,
   photoUrl?: string,
@@ -157,13 +174,16 @@ export async function updateRecipe(
     .update({
       name,
       name_ro,
-      meal_type: mealType,
+      // DB single value compatibility
+      meal_type: Array.isArray(mealType) ? (mealType[0] || 'dinner') : mealType,
       ingredients,
       ingredients_ro,
       instructions,
       instructions_ro,
       photo_url: photoUrl || null,
       family_id: familyId,
+      // DB full list
+      tags: Array.isArray(mealType) ? mealType : [mealType],
     })
     .eq("id", id);
 
@@ -217,9 +237,9 @@ export async function reportRecipe(recipeId: string, reason: string): Promise<vo
         console.warn("ADMIN_EMAIL not set; skipping report email.");
       } else {
         await sendEmail({
-        to: reportEmail,
-        subject: `🚩 Recipe Reported: ${recipe.name}`,
-        html: `
+          to: reportEmail,
+          subject: `🚩 Recipe Reported: ${recipe.name}`,
+          html: `
           <h2>Recipe Report Received</h2>
           <p><strong>Recipe:</strong> ${recipe.name} (ID: ${recipeId})</p>
           <p><strong>Reported by:</strong> ${profile?.name || "Unknown"} (${profile?.email || "No email"})</p>

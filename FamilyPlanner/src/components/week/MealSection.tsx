@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MEAL_KEYS, MEAL_LABELS } from "@/lib/week";
 import { assignMeal } from "@/app/actions/week";
 import { RecipeSearchModal } from "../recipes/RecipeSearchModal";
@@ -16,7 +16,7 @@ interface MealSectionProps {
 }
 
 export function MealSection({ dayPlan, recipes, weekStartStr, onUpdate }: MealSectionProps) {
-  const { refreshProfile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const { t, language } = useTranslation();
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -49,6 +49,8 @@ export function MealSection({ dayPlan, recipes, weekStartStr, onUpdate }: MealSe
     }
   };
 
+
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between px-2">
@@ -59,93 +61,89 @@ export function MealSection({ dayPlan, recipes, weekStartStr, onUpdate }: MealSe
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
         {/* Left Side: Meals "Table" (Vertical Flow) */}
-        <div className="bg-white rounded-[2.5rem] border border-sage-100 shadow-xl shadow-sage-900/5 divide-y divide-sage-50 overflow-hidden">
+        <div className="flex-1 min-w-0 bg-white rounded-[2.5rem] border border-sage-100 shadow-xl shadow-sage-900/5 divide-y divide-sage-50 overflow-hidden">
           {MEAL_KEYS.map((mealKey) => {
-            // Only show slots that actually have a recipe assigned
             const filledSlots = (dayPlan.meals[mealKey] || []).filter(slot => slot.recipe_id);
+            // Check if the selected recipe belongs to this meal type
+            const isSelectedInThisMeal = selectedRecipe && filledSlots.some(slot => slot.recipe_id === selectedRecipe.id);
+            const firstRecipeInMeal = filledSlots.length > 0 ? recipes.find(r => r.id === filledSlots[0].recipe_id) : null;
+            // Prioritize the selected recipe's photo if it's in this meal section
+            const displayRecipe = isSelectedInThisMeal ? selectedRecipe : firstRecipeInMeal;
 
             return (
-              <div key={mealKey} className="group p-6 hover:bg-sage-50/20 transition-colors">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
-                  {/* Meal Label + Mobile Add Button */}
-                  <div className="flex items-center justify-between sm:w-28 sm:shrink-0 sm:block">
-                    <div>
-                      <span className="text-[10px] font-bold text-sage-300 uppercase tracking-widest block mb-0.5">
-                        {t(mealKey)}
-                      </span>
-                      <h3 className="text-sm font-black text-sage-800 uppercase tracking-tight">
-                        {t(mealKey)}
-                      </h3>
-                    </div>
-                    {/* Small Add Button for mobile - shown on same line as label */}
-                    <div className="sm:hidden">
+              <div key={mealKey} className="group p-6 md:p-8 hover:bg-sage-50/20 transition-colors">
+                <div className="flex flex-col md:flex-row gap-6 md:gap-8">
+                  {/* Column 1: Photo Square Container */}
+                  <div className="w-full md:w-32 h-48 md:h-32 shrink-0 rounded-2xl overflow-hidden bg-[#F9F4D8] border border-sage-50 shadow-sm relative group/photo">
+                    {displayRecipe?.photo_url ? (
+                      <img src={displayRecipe.photo_url} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover/photo:scale-110" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-4xl grayscale opacity-30">🍴</div>
+                    )}
+                  </div>
+
+                  {/* Column 2: Header (Name + Add) and Recipe List */}
+                  <div className="flex-1 flex flex-col min-w-0">
+                    {/* Meal Name + Add Button Group */}
+                    <div className="flex items-center justify-between mb-4 pb-2 border-b border-sage-50">
+                      <div>
+                        <h3 className="text-xl font-black text-sage-800 uppercase tracking-tight flex items-center gap-3">
+                          {t(mealKey)}
+                        </h3>
+                      </div>
                       <button
                         onClick={() => setOpenSlot({ mealKey, slotIndex: filledSlots.length })}
-                        className="w-10 h-10 rounded-xl border-2 border-dashed border-sage-100 flex items-center justify-center text-sage-200 hover:border-sage-300 hover:text-sage-400 hover:bg-sage-50 transition-all"
+                        className="w-10 h-10 rounded-xl bg-sage-50 text-sage-400 hover:bg-sage-100 hover:text-sage-600 transition-all flex items-center justify-center text-2xl font-light border border-sage-100/50 shadow-sm"
+                        title={t("recipes_add_new")}
                       >
-                        <span className="text-lg font-light">＋</span>
+                        ＋
                       </button>
                     </div>
-                  </div>
 
-                  {/* Recipe Stack */}
-                  <div className="flex-1 flex flex-col gap-3">
-                    {filledSlots.map((slot, slotIndex) => {
-                      const recipe = recipes.find((r) => r.id === slot.recipe_id);
-                      if (!recipe) return null;
+                    {/* Recipe Details Stack */}
+                    <div className="space-y-4">
+                      {filledSlots.length > 0 ? (
+                        filledSlots.map((slot, slotIndex) => {
+                          const recipe = recipes.find((r) => r.id === slot.recipe_id);
+                          if (!recipe) return null;
+                          const isSelected = selectedRecipe?.id === recipe.id;
 
-                      const isSelected = selectedRecipe?.id === recipe.id;
+                          return (
+                            <div
+                              key={`${mealKey}-${slotIndex}`}
+                              onClick={() => handleRecipeClick(recipe)}
+                              className={`group/slot relative p-4 rounded-2xl border transition-all cursor-pointer flex flex-col gap-3
+                                ${isSelected
+                                  ? "border-sage-300 bg-sage-50/50 shadow-sm shadow-sage-900/5"
+                                  : "border-transparent bg-transparent hover:bg-sage-50/30"}
+                              `}
+                            >
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="min-w-0">
+                                  <p className="text-lg font-black text-sage-800 leading-tight tracking-tight hover:text-sage-600 transition-colors">
+                                    {language === 'ro' && recipe.name_ro ? recipe.name_ro : recipe.name}
+                                  </p>
+                                </div>
+                                <button
+                                  onClick={(e) => handleRemoveMeal(e, mealKey, slotIndex)}
+                                  className="shrink-0 w-6 h-6 rounded-full bg-white text-rose-300 hover:text-rose-600 shadow-sm border border-sage-50 flex items-center justify-center text-[10px] transition-all hover:scale-110"
+                                >
+                                  ✕
+                                </button>
+                              </div>
 
-                      return (
-                        <div
-                          key={`${mealKey}-${slotIndex}`}
-                          onClick={() => handleRecipeClick(recipe)}
-                          className={`group/slot relative flex items-center gap-3 p-3 rounded-2xl border-2 transition-all w-full cursor-pointer
-                            ${isSelected
-                              ? "border-sage-400 bg-sage-50 shadow-md translate-x-1"
-                              : "border-sage-100 bg-white hover:border-sage-200 hover:shadow-sm"}
-                          `}
-                        >
-                          {/* Recipe Icon/Photo */}
-                          <div className={`w-14 h-14 rounded-xl overflow-hidden shrink-0 flex items-center justify-center text-2xl transition-all
-                            ${recipe.photo_url ? '' : 'bg-[#F9F4D8]'}
-                          `}>
-                            {recipe.photo_url ? (
-                              <img src={recipe.photo_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                            ) : (
-                              <span className="grayscale opacity-40">🍴</span>
-                            )}
-                          </div>
 
-                          <div className="text-left overflow-hidden flex-1">
-                            <p className="text-sm font-black text-sage-800 truncate tracking-tight">
-                              {language === 'ro' && recipe.name_ro ? recipe.name_ro : recipe.name}
-                            </p>
-                            <p className="text-[10px] text-sage-400 font-bold uppercase tracking-widest mt-0.5">
-                              • {recipe.difficulty ? t(recipe.difficulty) : 'M'}
-                            </p>
-                          </div>
-
-                          {/* Delete Button */}
-                          <button
-                            onClick={(e) => handleRemoveMeal(e, mealKey, slotIndex)}
-                            className="absolute -top-1.5 -right-1.5 w-8 h-8 sm:w-6 sm:h-6 rounded-full bg-white text-red-500 shadow-md border border-red-50 flex items-center justify-center text-[10px] font-bold opacity-100 sm:opacity-0 sm:group-hover/slot:opacity-100 transition-all hover:scale-110 active:scale-95"
-                          >
-                            ✕
-                          </button>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="py-8 px-4 text-center border-2 border-dashed border-sage-50 rounded-2xl">
+                          <p className="text-[10px] font-black text-sage-200 uppercase tracking-[0.2em]">
+                            {t("menu_select_recipe")}
+                          </p>
                         </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Small Add Button for desktop - shown on far right */}
-                  <div className="hidden sm:block shrink-0 ml-2">
-                    <button
-                      onClick={() => setOpenSlot({ mealKey, slotIndex: filledSlots.length })}
-                      className="w-12 h-12 rounded-xl border-2 border-dashed border-sage-100 flex items-center justify-center text-sage-200 hover:border-sage-300 hover:text-sage-400 hover:bg-sage-50 transition-all group/add"
-                    >
-                      <span className="text-xl font-light group-hover/add:scale-110 transition-transform">＋</span>
-                    </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -176,12 +174,17 @@ export function MealSection({ dayPlan, recipes, weekStartStr, onUpdate }: MealSe
                 </button>
 
                 <div className="absolute bottom-6 left-8 right-8">
-                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70 mb-1 block">
-                    {t("menu_selected_recipe")}
-                  </span>
-                  <h3 className="text-2xl font-black text-white leading-tight drop-shadow-md">
-                    {language === 'ro' && selectedRecipe.name_ro ? selectedRecipe.name_ro : selectedRecipe.name}
-                  </h3>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70 mb-1 block">
+                        {t("menu_selected_recipe")}
+                      </span>
+                      <h3 className="text-2xl font-black text-white leading-tight drop-shadow-md">
+                        {language === 'ro' && selectedRecipe.name_ro ? selectedRecipe.name_ro : selectedRecipe.name}
+                      </h3>
+                    </div>
+
+                  </div>
                 </div>
               </div>
 
@@ -204,7 +207,10 @@ export function MealSection({ dayPlan, recipes, weekStartStr, onUpdate }: MealSe
                   <div className="flex flex-col">
                     <span className="text-[8px] font-black uppercase tracking-widest text-sage-300">{t("recipe_type")}</span>
                     <span className="text-xs font-bold text-sage-700 capitalize">
-                      {t(selectedRecipe.meal_type)}
+                      {(() => {
+                        const mealTypes = Array.isArray(selectedRecipe.meal_type) ? selectedRecipe.meal_type : [selectedRecipe.meal_type];
+                        return mealTypes.map(mt => t(mt)).join(", ");
+                      })()}
                     </span>
                   </div>
                 </div>

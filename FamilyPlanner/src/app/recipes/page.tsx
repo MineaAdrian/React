@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Nav } from "@/components/layout/Nav";
@@ -18,7 +19,9 @@ export default async function RecipesPage() {
     <>
       <Nav />
       <main className="mx-auto max-w-6xl px-4 py-6">
-        <RecipesPageClient familyId={profile?.family_id ?? null} />
+        <Suspense fallback={<div>Loading...</div>}>
+          <RecipesPageClient familyId={profile?.family_id ?? null} />
+        </Suspense>
       </main>
     </>
   );

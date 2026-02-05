@@ -35,7 +35,12 @@ export function RecipeSearchModal(props: Props) {
 
   const filtered = useMemo(() => {
     let list = recipes;
-    if (filterType) list = list.filter((r) => r.meal_type === filterType);
+    if (filterType) {
+      list = list.filter((r) => {
+        const mtypes = Array.isArray(r.meal_type) ? r.meal_type : [r.meal_type];
+        return mtypes.includes(filterType as MealType);
+      });
+    }
     const q = search.trim().toLowerCase();
     if (q) {
       list = list.filter(

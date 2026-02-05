@@ -51,7 +51,7 @@ export interface Recipe {
   id: string;
   name: string;
   name_ro?: string;
-  meal_type: MealType;
+  meal_type: MealType | MealType[]; // Support both single and multiple meal types for backwards compatibility
   ingredients: Ingredient[];
   ingredients_ro?: IngredientRo[];
   instructions: string;

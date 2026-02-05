@@ -8,25 +8,37 @@ type Props = {
   currentUserId?: string | null;
   onSelect?: () => void;
   onEdit?: () => void;
+  onDelete?: () => void;
   onReport?: (reason: string) => void;
   compact?: boolean;
 };
 
-export function RecipeCard({ recipe, currentUserId, onSelect, onEdit, onReport, compact }: Props) {
+export function RecipeCard({ recipe, currentUserId, onSelect, onEdit, onDelete, onReport, compact }: Props) {
   const { t, language } = useTranslation();
   const [isEditable, setIsEditable] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<string | null>(null);
   const isCreator = !!(currentUserId && recipe.created_by === currentUserId);
 
   useEffect(() => {
     const checkEditable = () => {
       const createdTime = new Date(recipe.created_at).getTime();
       const now = Date.now();
-      const fiveMinutes = 5 * 60 * 1000;
-      setIsEditable(now - createdTime < fiveMinutes);
+      const tenMinutes = 10 * 60 * 1000;
+      const diff = tenMinutes - (now - createdTime);
+
+      if (diff > 0) {
+        setIsEditable(true);
+        const mins = Math.floor(diff / 60000);
+        const secs = Math.floor((diff % 60000) / 1000);
+        setTimeLeft(`${mins}:${secs < 10 ? "0" : ""}${secs}`);
+      } else {
+        setIsEditable(false);
+        setTimeLeft(null);
+      }
     };
 
     checkEditable();
-    const interval = setInterval(checkEditable, 30000); // Check every 30s
+    const interval = setInterval(checkEditable, 1000);
     return () => clearInterval(interval);
   }, [recipe.created_at]);
 
@@ -86,20 +98,41 @@ export function RecipeCard({ recipe, currentUserId, onSelect, onEdit, onReport, 
 
       <div className="absolute right-2 bottom-2 flex gap-1 z-10">
         {isCreator && isEditable ? (
-          onEdit && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit();
-              }}
-              className="p-2 rounded-lg bg-white/80 backdrop-blur-sm border border-sage-200 text-sage-400 hover:text-sage-600 hover:bg-white hover:border-sage-300 shadow-sm transition-all"
-              title={t("recipe_edit_hint")}
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-            </button>
-          )
+          <div className="flex gap-1">
+            {onEdit && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit();
+                }}
+                className="p-2 pl-3 rounded-lg bg-white/80 backdrop-blur-sm border border-sage-200 text-sage-400 hover:text-sage-600 hover:bg-white hover:border-sage-300 shadow-sm transition-all flex items-center gap-2"
+                title={t("recipe_edit_hint")}
+              >
+                {timeLeft && (
+                  <span className="text-[10px] font-bold text-rose-500 font-mono">
+                    {timeLeft}
+                  </span>
+                )}
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete();
+                }}
+                className="p-2 rounded-lg bg-white/80 backdrop-blur-sm border border-sage-200 text-sage-400 hover:text-red-600 hover:bg-white hover:border-red-300 shadow-sm transition-all"
+                title={t("meal_remove_confirm")}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            )}
+          </div>
         ) : (
           onReport && (
             <button
