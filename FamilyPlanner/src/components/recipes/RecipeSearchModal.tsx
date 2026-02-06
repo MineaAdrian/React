@@ -41,19 +41,33 @@ export function RecipeSearchModal(props: Props) {
         return mtypes.includes(filterType as MealType);
       });
     }
+
     const q = search.trim().toLowerCase();
-    if (q) {
-      list = list.filter(
-        (r) =>
-          r.name.toLowerCase().includes(q) ||
-          r.name_ro?.toLowerCase().includes(q) ||
-          (r.ingredients && r.ingredients.some((i) =>
-            i.name.toLowerCase().includes(q) ||
-            i.name_ro?.toLowerCase().includes(q)
-          ))
-      );
-    }
-    return list;
+    if (!q) return list;
+
+    // Split items into those that match by name vs matching only by ingredients
+    const nameMatches: Recipe[] = [];
+    const ingredientMatches: Recipe[] = [];
+
+    list.forEach((r) => {
+      const matchesName =
+        r.name.toLowerCase().includes(q) ||
+        r.name_ro?.toLowerCase().includes(q);
+
+      if (matchesName) {
+        nameMatches.push(r);
+      } else {
+        const matchesIngredients = r.ingredients?.some((i) =>
+          i.name.toLowerCase().includes(q) ||
+          i.name_ro?.toLowerCase().includes(q)
+        );
+        if (matchesIngredients) {
+          ingredientMatches.push(r);
+        }
+      }
+    });
+
+    return [...nameMatches, ...ingredientMatches];
   }, [recipes, search, filterType]);
 
   const handleSelect = async (recipeId: string | null) => {

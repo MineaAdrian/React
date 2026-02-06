@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef, Suspense } from "react";
+import React, { useEffect, useState, useMemo, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { getRecipes, createRecipe, uploadRecipePhoto, updateRecipe, reportRecipe, deleteRecipe } from "@/app/actions/recipes";
 import { RecipeCard } from "@/components/recipes/RecipeCard";
@@ -114,7 +114,7 @@ export function RecipesPageClient({ familyId, userId }: Props) {
     setMealTypes(["dinner"]);
     setInstructions("");
     setInstructionsRo("");
-    setIngredients([{ name: "", name_ro: "", quantity: 1, unit: "pcs" }]);
+    setIngredients([{ name: "", name_ro: "", quantity: 1, unit: "" }]);
     setPhotoUrl("");
     setIsFamilyOnly(true);
   };
@@ -176,6 +176,45 @@ export function RecipesPageClient({ familyId, userId }: Props) {
     });
   };
 
+  // Filter recipes based on search query
+  const filteredRecipes = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
+
+    // First, filter by "My Recipes"
+    const baseList = recipes.filter((recipe) => {
+      const isMyRecipe = filterMyRecipes
+        ? (familyId ? recipe.family_id === familyId : recipe.created_by === profile?.id)
+        : true;
+      return isMyRecipe;
+    });
+
+    if (!query) return baseList;
+
+    const nameMatches: Recipe[] = [];
+    const ingredientMatches: Recipe[] = [];
+
+    baseList.forEach((recipe) => {
+      const matchesName =
+        recipe.name.toLowerCase().includes(query) ||
+        recipe.name_ro?.toLowerCase().includes(query);
+
+      if (matchesName) {
+        nameMatches.push(recipe);
+      } else {
+        const matchesIngredients = recipe.ingredients?.some(
+          (ing) =>
+            ing.name.toLowerCase().includes(query) ||
+            ing.name_ro?.toLowerCase().includes(query)
+        );
+        if (matchesIngredients) {
+          ingredientMatches.push(recipe);
+        }
+      }
+    });
+
+    return [...nameMatches, ...ingredientMatches];
+  }, [recipes, searchQuery, filterMyRecipes, familyId, profile?.id]);
+
   if (loading) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
@@ -183,26 +222,6 @@ export function RecipesPageClient({ familyId, userId }: Props) {
       </div>
     );
   }
-
-  // Filter recipes based on search query
-  const filteredRecipes = recipes.filter((recipe) => {
-    const query = searchQuery.toLowerCase().trim();
-    const isMyRecipe = filterMyRecipes
-      ? (familyId ? recipe.family_id === familyId : recipe.created_by === profile?.id)
-      : true;
-
-    const nameMatch =
-      recipe.name.toLowerCase().includes(query) ||
-      recipe.name_ro?.toLowerCase().includes(query);
-
-    const ingredientMatch = recipe.ingredients?.some(
-      (ing) =>
-        ing.name.toLowerCase().includes(query) ||
-        ing.name_ro?.toLowerCase().includes(query)
-    );
-
-    return (nameMatch || ingredientMatch) && isMyRecipe;
-  });
 
   return (
     <div className="space-y-6">
@@ -264,7 +283,7 @@ export function RecipesPageClient({ familyId, userId }: Props) {
       )}
 
       <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-        {filteredRecipes.map((recipe) => (
+        {filteredRecipes.map((recipe: Recipe) => (
           <RecipeCard
             key={recipe.id}
             recipe={recipe}
@@ -528,7 +547,7 @@ function RecipeFormView({
               <tr>
                 <th className="px-4 py-3">{t("recipes_ing_name")}</th>
                 <th className="px-4 py-3 w-24">{t("recipes_qty")}</th>
-                <th className="px-4 py-3 w-24">{t("recipes_unit")}</th>
+                <th className="px-4 py-3 w-32">{t("recipes_unit")}</th>
                 <th className="px-4 py-3 w-10"></th>
               </tr>
             </thead>
@@ -583,18 +602,26 @@ function RecipeFormView({
                       className="w-full bg-transparent border-none focus:ring-0 p-0 text-sage-800 placeholder:text-sage-300"
                     />
                   </td>
-                  <td className="px-4 py-2">
-                    <input
-                      type="text"
-                      value={ing.unit || ""}
-                      onChange={(e) => {
-                        const newIngs = [...ingredients];
-                        newIngs[idx].unit = e.target.value;
-                        setIngredients(newIngs);
-                      }}
-                      placeholder="g/ml/buc"
-                      className="w-full bg-transparent border-none focus:ring-0 p-0 text-sage-800 placeholder:text-sage-300 text-xs"
-                    />
+                  <td className="px-4 py-2 w-32">
+                    <div className="flex gap-1 items-center">
+                      {(['g', 'ml', 'buc'] as const).map((u) => (
+                        <button
+                          key={u}
+                          type="button"
+                          onClick={() => {
+                            const newIngs = [...ingredients];
+                            newIngs[idx].unit = u;
+                            setIngredients(newIngs);
+                          }}
+                          className={`flex-1 h-7 flex items-center justify-center rounded-lg text-[10px] font-bold transition-all border ${ing.unit === u
+                            ? "bg-sage-600 text-white border-sage-600 shadow-sm"
+                            : "bg-sage-50 text-sage-500 border-sage-100 hover:border-sage-200 hover:bg-sage-100"
+                            }`}
+                        >
+                          {u === 'buc' ? 'buc/pcs' : u}
+                        </button>
+                      ))}
+                    </div>
                   </td>
                   <td className="px-4 py-2 text-right">
                     <button
@@ -691,7 +718,7 @@ function RecipeDetailsView({ recipe, profile, onCancel, onEdit, onDelete, onRepo
                   })()}
                 </span>
                 <h2 className="text-3xl font-display font-semibold text-sage-900 leading-tight">
-                  {language === 'ro' && recipe.name_ro ? recipe.name_ro : recipe.name}
+                  {language === 'ro' ? (recipe.name_ro || recipe.name) : (recipe.name || recipe.name_ro)}
                 </h2>
               </div>
               <div className="flex gap-2">
@@ -741,7 +768,7 @@ function RecipeDetailsView({ recipe, profile, onCancel, onEdit, onDelete, onRepo
                   return (
                     <li key={i} className="flex justify-between text-sm">
                       <span className="font-medium text-sage-800">
-                        {language === 'ro' && roName ? roName : ing.name}
+                        {language === 'ro' ? (roName || ing.name) : (ing.name || roName)}
                       </span>
                       <span className="text-sage-500 font-mono text-xs">{ing.quantity} {ing.unit}</span>
                     </li>
@@ -762,7 +789,7 @@ function RecipeDetailsView({ recipe, profile, onCancel, onEdit, onDelete, onRepo
         <h3 className="text-xs font-black uppercase tracking-widest text-sage-400 mb-4">{t("recipe_view_method")}</h3>
         <div className="prose prose-sage prose-p:text-sage-800 prose-p:leading-relaxed">
           <p className="whitespace-pre-wrap text-lg">
-            {(language === 'ro' && recipe.instructions_ro) ? recipe.instructions_ro : (recipe.instructions || t("menu_no_instructions"))}
+            {(language === 'ro' ? (recipe.instructions_ro || recipe.instructions) : (recipe.instructions || recipe.instructions_ro)) || t("menu_no_instructions")}
           </p>
         </div>
       </div>

@@ -79,7 +79,7 @@ export function RecipeCard({ recipe, currentUserId, onSelect, onEdit, onDelete, 
       {/* Recipe Info */}
       <div className="p-4 flex-1">
         <div className="font-semibold text-sage-800 group-hover:text-sage-900 transition-colors leading-snug">
-          {language === 'ro' && recipe.name_ro ? recipe.name_ro : recipe.name}
+          {language === 'ro' ? (recipe.name_ro || recipe.name) : (recipe.name || recipe.name_ro)}
         </div>
         {!compact && recipe.ingredients && recipe.ingredients.length > 0 && (
           <div className="mt-2 text-xs text-sage-500 font-medium">

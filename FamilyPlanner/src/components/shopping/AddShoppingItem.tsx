@@ -14,7 +14,7 @@ export function AddShoppingItem({ weekStartStr }: AddShoppingItemProps) {
     const [name, setName] = useState("");
     const [nameRo, setNameRo] = useState("");
     const [quantity, setQuantity] = useState("1");
-    const [unit, setUnit] = useState("pcs");
+    const [unit, setUnit] = useState("");
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -28,7 +28,7 @@ export function AddShoppingItem({ weekStartStr }: AddShoppingItemProps) {
             setName("");
             setNameRo("");
             setQuantity("1");
-            setUnit("pcs");
+            setUnit("");
             setIsOpen(false);
         } catch (err) {
             console.error("Failed to add item", err);
@@ -54,67 +54,37 @@ export function AddShoppingItem({ weekStartStr }: AddShoppingItemProps) {
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
                     {language === 'ro' ? (
-                        <>
-                            <div className="sm:col-span-1">
-                                <label htmlFor="item-name-ro" className="block text-xs font-medium text-sage-600 uppercase mb-1">
-                                    {t("recipes_ing_name")} (RO)
-                                </label>
-                                <input
-                                    id="item-name-ro"
-                                    type="text"
-                                    value={nameRo}
-                                    onChange={(e) => setNameRo(e.target.value)}
-                                    placeholder="ex. Lapte"
-                                    className="input h-10"
-                                    autoFocus
-                                />
-                            </div>
-                            <div className="sm:col-span-1">
-                                <label htmlFor="item-name" className="block text-xs font-medium text-sage-600 uppercase mb-1">
-                                    {t("recipes_ing_name")} (EN)
-                                </label>
-                                <input
-                                    id="item-name"
-                                    type="text"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    placeholder="e.g. Milk"
-                                    className="input h-10"
-                                    required
-                                />
-                            </div>
-                        </>
+                        <div className="sm:col-span-2">
+                            <label htmlFor="item-name-ro" className="block text-xs font-medium text-sage-600 uppercase mb-1">
+                                {t("recipes_ing_name")}
+                            </label>
+                            <input
+                                id="item-name-ro"
+                                type="text"
+                                value={nameRo}
+                                onChange={(e) => setNameRo(e.target.value)}
+                                placeholder="ex. Lapte"
+                                className="input h-10"
+                                required
+                                autoFocus
+                            />
+                        </div>
                     ) : (
-                        <>
-                            <div className="sm:col-span-1">
-                                <label htmlFor="item-name" className="block text-xs font-medium text-sage-600 uppercase mb-1">
-                                    {t("recipes_ing_name")} (EN)
-                                </label>
-                                <input
-                                    id="item-name"
-                                    type="text"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    placeholder="e.g. Milk"
-                                    className="input h-10"
-                                    required
-                                    autoFocus
-                                />
-                            </div>
-                            <div className="sm:col-span-1">
-                                <label htmlFor="item-name-ro" className="block text-xs font-medium text-sage-600 uppercase mb-1">
-                                    {t("recipes_ing_name")} (RO)
-                                </label>
-                                <input
-                                    id="item-name-ro"
-                                    type="text"
-                                    value={nameRo}
-                                    onChange={(e) => setNameRo(e.target.value)}
-                                    placeholder="ex. Lapte"
-                                    className="input h-10"
-                                />
-                            </div>
-                        </>
+                        <div className="sm:col-span-2">
+                            <label htmlFor="item-name" className="block text-xs font-medium text-sage-600 uppercase mb-1">
+                                {t("recipes_ing_name")}
+                            </label>
+                            <input
+                                id="item-name"
+                                type="text"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="e.g. Milk"
+                                className="input h-10"
+                                required
+                                autoFocus
+                            />
+                        </div>
                     )}
                     <div className="grid grid-cols-2 gap-2 sm:col-span-2">
                         <div>
@@ -135,14 +105,21 @@ export function AddShoppingItem({ weekStartStr }: AddShoppingItemProps) {
                             <label htmlFor="item-unit" className="block text-xs font-medium text-sage-600 uppercase mb-1">
                                 {t("recipes_unit")}
                             </label>
-                            <input
-                                id="item-unit"
-                                type="text"
-                                value={unit}
-                                onChange={(e) => setUnit(e.target.value)}
-                                placeholder="pcs, g, ml..."
-                                className="input h-10"
-                            />
+                            <div className="flex gap-1 items-center mb-1">
+                                {(['g', 'ml', 'buc'] as const).map((u) => (
+                                    <button
+                                        key={u}
+                                        type="button"
+                                        onClick={() => setUnit(u)}
+                                        className={`flex-1 h-8 flex items-center justify-center rounded-lg text-[10px] font-bold transition-all border ${unit === u
+                                            ? "bg-sage-600 text-white border-sage-600 shadow-sm"
+                                            : "bg-sage-50 text-sage-500 border-sage-100 hover:border-sage-200 hover:bg-sage-100"
+                                            }`}
+                                    >
+                                        {u === 'buc' ? 'buc/pcs' : u}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </div>
