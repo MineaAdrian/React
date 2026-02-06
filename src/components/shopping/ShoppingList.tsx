@@ -9,6 +9,7 @@ import { formatWeekRange } from "@/lib/week";
 import { ShoppingItemRow } from "./ShoppingItemRow";
 import { AddShoppingItem } from "./AddShoppingItem";
 import { useTranslation } from "@/hooks/useTranslation";
+import { downloadShoppingListPdf } from "@/lib/pdf";
 import type { ShoppingItem } from "@/types";
 
 export function ShoppingList() {
@@ -161,6 +162,14 @@ export function ShoppingList() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
           </button>
+          <button
+            onClick={() => downloadShoppingListPdf(items, formatWeekRange(weekStart, language), language)}
+            className="btn-secondary p-2.5 flex items-center justify-center rounded-xl shrink-0"
+            title={t("shopping_download_pdf")}
+            aria-label={t("shopping_download_pdf")}
+          >
+            📄
+          </button>
         </div>
       </div>
 
@@ -180,6 +189,6 @@ export function ShoppingList() {
           ))
         )}
       </ul>
-    </div>
+    </div >
   );
 }

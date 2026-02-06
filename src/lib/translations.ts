@@ -12,6 +12,8 @@ export type TranslationKey =
     | "week_this"
     | "week_next"
     | "week_loading"
+    | "View Details"
+    | "Close Recipe"
     | "menu_daily_menu"
     | "meal_remove_confirm"
     | "assign_recipe"
@@ -52,6 +54,7 @@ export type TranslationKey =
     | "recipes_uploading"
     | "recipes_update"
     | "recipes_save"
+    | "recipes_saving"
     | "recipes_not_found"
     | "recipes_empty"
     // Recipe View
@@ -69,6 +72,7 @@ export type TranslationKey =
     | "recipe_report_prompt"
     | "recipe_edit_hint"
     | "recipe_report_title"
+    | "recipe_download_pdf"
     // Shopping
     | "shopping_title"
     | "shopping_live"
@@ -82,6 +86,7 @@ export type TranslationKey =
     | "shopping_add_action"
     | "shopping_add_action"
     | "shopping_adding"
+    | "shopping_download_pdf"
     // Menu / Week View
     | "menu_selected_recipe"
     | "menu_pantry_check"
@@ -132,6 +137,8 @@ export const translations: Record<Language, Record<TranslationKey, string>> = {
         week_this: "This week",
         week_next: "Next week",
         week_loading: "Loading week...",
+        "View Details": "View Details",
+        "Close Recipe": "Close Recipe",
         menu_daily_menu: "Daily Menu",
         meal_remove_confirm: "Remove this meal from the plan?",
         assign_recipe: "Assign recipe",
@@ -170,6 +177,7 @@ export const translations: Record<Language, Record<TranslationKey, string>> = {
         recipes_uploading: "Uploading...",
         recipes_update: "Update Recipe",
         recipes_save: "Save Recipe",
+        recipes_saving: "Saving...",
         recipes_not_found: "No recipes found matching",
         recipes_empty: "Your kitchen is empty. Add your first recipe!",
         recipe_view_edit: "Edit",
@@ -194,6 +202,7 @@ export const translations: Record<Language, Record<TranslationKey, string>> = {
         shopping_add_item: "Add manual item",
         shopping_add_action: "Add to List",
         shopping_adding: "Adding...",
+        shopping_download_pdf: "Download PDF",
         menu_selected_recipe: "Selected Recipe",
         menu_pantry_check: "Pantry Check",
         menu_cooking_mode: "Cooking Mode",
@@ -232,7 +241,8 @@ export const translations: Record<Language, Record<TranslationKey, string>> = {
         settings_approval_hint: "The family admin must approve your request before you can see their planner.",
         recipe_report_prompt: "Why are you reporting this recipe? (e.g. incorrect ingredients, typo, offensive)",
         recipe_edit_hint: "Edit recipe (Available for 5 mins after creation)",
-        recipe_report_title: "Report issue"
+        recipe_report_title: "Report issue",
+        recipe_download_pdf: "Download PDF"
     },
     ro: {
         nav_menu: "Meniu Săptămânal",
@@ -244,6 +254,8 @@ export const translations: Record<Language, Record<TranslationKey, string>> = {
         week_this: "Săptămâna aceasta",
         week_next: "Săptămâna viitoare",
         week_loading: "Se încarcă săptămâna...",
+        "View Details": "Detalii Rețetă",
+        "Close Recipe": "Închide Rețeta",
         menu_daily_menu: "Meniu Zilnic",
         meal_remove_confirm: "Elimini această masă din plan?",
         assign_recipe: "Alocă rețetă",
@@ -282,6 +294,7 @@ export const translations: Record<Language, Record<TranslationKey, string>> = {
         recipes_uploading: "Se încarcă...",
         recipes_update: "Actualizează Rețetă",
         recipes_save: "Salvează Rețetă",
+        recipes_saving: "Se salvează...",
         recipes_not_found: "Nicio rețetă găsită pentru",
         recipes_empty: "Bucătăria ta e goală. Adaugă prima rețetă!",
         recipe_view_edit: "Editează",
@@ -306,6 +319,7 @@ export const translations: Record<Language, Record<TranslationKey, string>> = {
         shopping_add_item: "Adaugă element manual",
         shopping_add_action: "Adaugă la Listă",
         shopping_adding: "Se adaugă...",
+        shopping_download_pdf: "Descarcă PDF",
         menu_selected_recipe: "Rețeta Selectată",
         menu_pantry_check: "Verificare Cămară",
         menu_cooking_mode: "Mod Gătit",
@@ -344,6 +358,7 @@ export const translations: Record<Language, Record<TranslationKey, string>> = {
         settings_approval_hint: "Administratorul familiei trebuie să aprobe cererea înainte de a vedea planificatorul.",
         recipe_report_prompt: "De ce raportezi această rețetă? (ex. ingrediente incorecte, greșeală, conținut ofensator)",
         recipe_edit_hint: "Editează rețeta (Disponibil 5 min de la creare)",
-        recipe_report_title: "Raportează problemă"
+        recipe_report_title: "Raportează problemă",
+        recipe_download_pdf: "Descarcă PDF"
     }
 };

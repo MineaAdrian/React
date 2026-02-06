@@ -30,6 +30,7 @@ export function RecipesPageClient({ familyId, userId }: Props) {
   ]);
   const [photoUrl, setPhotoUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
   const [viewingRecipe, setViewingRecipe] = useState<Recipe | null>(null);
   const [isFamilyOnly, setIsFamilyOnly] = useState(true);
@@ -139,8 +140,15 @@ export function RecipesPageClient({ familyId, userId }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     const actualName = name.trim() || nameRo.trim();
     const actualNameRo = nameRo.trim() || name.trim();
+    if (!actualName) {
+      alert("Recipe name is required.");
+      return;
+    }
+
     const actualInstructions = instructions.trim() || (instructionsRo.trim() || "");
     const actualInstructionsRo = instructionsRo.trim() || (instructions.trim() || "");
 
@@ -164,16 +172,23 @@ export function RecipesPageClient({ familyId, userId }: Props) {
       unit: ing.unit
     }));
 
-    const result = editingRecipeId
-      ? await updateRecipe(editingRecipeId, actualName, mealTypes, cleanedIngredients, actualInstructions, photoUrl, targetFamilyId, actualNameRo, actualInstructionsRo, ingredientsRo)
-      : await createRecipe(actualName, mealTypes, cleanedIngredients, actualInstructions, targetFamilyId, photoUrl, actualNameRo, actualInstructionsRo, ingredientsRo);
+    try {
+      setIsSubmitting(true);
+      const result = editingRecipeId
+        ? await updateRecipe(editingRecipeId, actualName, mealTypes, cleanedIngredients, actualInstructions, photoUrl, targetFamilyId, actualNameRo, actualInstructionsRo, ingredientsRo)
+        : await createRecipe(actualName, mealTypes, cleanedIngredients, actualInstructions, targetFamilyId, photoUrl, actualNameRo, actualInstructionsRo, ingredientsRo);
 
-    console.log('Submission result:', result);
-    handleCancel();
-    getRecipes().then((latestRecipes) => {
+      console.log('Submission result:', result);
+      handleCancel();
+      const latestRecipes = await getRecipes();
       console.log('Fetched recipes after add:', latestRecipes.length);
       setRecipes(latestRecipes);
-    });
+    } catch (err: any) {
+      console.error("Submission failed", err);
+      alert(`Failed to save recipe: ${err.message || "Please check your connection."}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Filter recipes based on search query
@@ -346,6 +361,7 @@ export function RecipesPageClient({ familyId, userId }: Props) {
                 photoUrl={photoUrl}
                 setPhotoUrl={setPhotoUrl}
                 isUploading={isUploading}
+                isSubmitting={isSubmitting}
                 fileInputRef={fileInputRef}
                 handleFileChange={handleFileChange}
                 isFamilyOnly={isFamilyOnly}
@@ -380,6 +396,7 @@ function RecipeFormView({
   photoUrl,
   setPhotoUrl,
   isUploading,
+  isSubmitting,
   fileInputRef,
   handleFileChange,
   isFamilyOnly,
@@ -645,8 +662,12 @@ function RecipeFormView({
         </div>
       </div>
 
-      <button type="submit" className="btn-primary w-full py-4 text-base font-bold shadow-lg shadow-sage-900/10" disabled={isUploading}>
-        {isUploading ? t("recipes_uploading") : editingRecipeId ? t("recipes_update") : t("recipes_save")}
+      <button
+        type="submit"
+        className="btn-primary w-full py-4 text-base font-bold shadow-lg shadow-sage-900/10 transition-all disabled:opacity-50 disabled:grayscale"
+        disabled={isUploading || isSubmitting}
+      >
+        {isUploading ? t("recipes_uploading") : isSubmitting ? t("recipes_saving") : editingRecipeId ? t("recipes_update") : t("recipes_save")}
       </button>
     </form>
   );

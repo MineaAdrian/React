@@ -83,6 +83,24 @@ export async function createRecipe(
   const fid = familyIdInput === undefined ? userFamilyId : familyIdInput;
 
   const supabase = await createClient();
+
+  // --- DUPLICATE PROTECTION ---
+  // Check if a recipe with the same name and instructions by this user was created in the last 60 seconds.
+  const oneMinuteAgo = new Date(Date.now() - 60000).toISOString();
+  const { data: existingRecipe } = await supabase
+    .from("recipes")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("name", name)
+    .eq("instructions", instructions)
+    .gt("created_at", oneMinuteAgo)
+    .maybeSingle();
+
+  if (existingRecipe) {
+    console.warn("[DUPLICATE PREVENTED] Recipe already exists, returning existing one:", existingRecipe.id);
+    return toRecipe(existingRecipe as any);
+  }
+
   const { data, error } = await supabase
     .from("recipes")
     .insert({

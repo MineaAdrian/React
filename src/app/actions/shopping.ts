@@ -509,6 +509,27 @@ export async function addManualShoppingItem(
   const ingredient = ingredientName.trim();
   const u = unit.trim() || "pcs";
 
+  // --- DUPLICATE PROTECTION ---
+  // If the same item was modified in the last 5 seconds, ignore to prevent spam incrementing
+  try {
+    const fiveSecondsAgo = new Date(Date.now() - 5000);
+    const recent = await prisma.shoppingItem.findFirst({
+      where: {
+        familyId,
+        weekStart,
+        ingredientName: ingredient,
+        unit: u,
+        createdAt: { gte: fiveSecondsAgo }
+      }
+    });
+    if (recent) {
+      console.warn("[DUPLICATE PREVENTED] Shopping item recently updated, ignoring spam request.");
+      return { ok: true };
+    }
+  } catch (e) {
+    // ignore lookup errors
+  }
+
   try {
     await prisma.shoppingItem.upsert({
       where: {

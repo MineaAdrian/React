@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { clsx } from "clsx";
-import { signUp } from "@/app/actions/auth";
+import { signUp, resendConfirmationEmail } from "@/app/actions/auth";
 
 export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
@@ -11,6 +11,8 @@ export default function RegisterPage() {
   const [familyMode, setFamilyMode] = useState<"join" | "create">("create");
   const [familyId, setFamilyId] = useState("");
   const [familyName, setFamilyName] = useState("");
+  const [email, setEmail] = useState("");
+  const [resendStatus, setResendStatus] = useState<string | null>(null);
 
   const isUuidValid = (uuid: string) => {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uuid);
@@ -21,6 +23,8 @@ export default function RegisterPage() {
   async function handleSubmit(formData: FormData) {
     setError(null);
     setMessage(null);
+    const formDataEmail = formData.get("email") as string;
+    setEmail(formDataEmail);
     const result = await signUp(formData);
     if (result?.error) {
       setError(result.error);
@@ -171,6 +175,21 @@ export default function RegisterPage() {
               <Link href="/login" className="btn-primary block w-full py-3 mt-4 text-sm font-semibold">
                 Go to Login
               </Link>
+              <button
+                type="button"
+                onClick={async () => {
+                  setResendStatus("sending");
+                  if (email) {
+                    const res = await resendConfirmationEmail(email);
+                    if (res?.success) setResendStatus("sent");
+                    else setResendStatus("error");
+                  }
+                }}
+                disabled={resendStatus === "sending" || resendStatus === "sent"}
+                className="text-xs text-sage-500 hover:text-sage-700 underline mt-4 transition-colors disabled:opacity-50 disabled:no-underline"
+              >
+                {resendStatus === "sending" ? "Sending..." : resendStatus === "sent" ? "Email resent!" : "Resend confirmation email"}
+              </button>
             </div>
           ) : (
             <button
