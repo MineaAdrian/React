@@ -29,6 +29,9 @@ export function MealSection({ dayPlan, recipes, weekStartStr, onUpdate }: MealSe
 
   const handleRecipeClick = (recipe: Recipe) => {
     setSelectedRecipe(recipe);
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+      setIsExpanded(true);
+    }
   };
 
   const handleRemoveMeal = async (e: React.MouseEvent, mealKey: MealType, slotIndex: number) => {
@@ -167,27 +170,29 @@ export function MealSection({ dayPlan, recipes, weekStartStr, onUpdate }: MealSe
                   <div className="flex h-full w-full items-center justify-center text-6xl bg-gradient-to-br from-cream to-sage-50 grayscale opacity-40">🍽️</div>
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-sage-900/60 via-transparent to-transparent" />
-                <button
-                  onClick={() => setIsExpanded(true)}
-                  className="absolute top-6 right-20 h-10 w-10 rounded-full bg-black/20 text-white backdrop-blur-xl hover:bg-white/40 transition-all flex items-center justify-center font-bold border border-white/20"
-                  title={t("View Details")}
-                >
-                  ⛶
-                </button>
-                <button
-                  onClick={() => downloadRecipePdf(selectedRecipe, language)}
-                  className="absolute top-6 right-[136px] h-10 w-10 rounded-full bg-black/20 text-white backdrop-blur-xl hover:bg-white/40 transition-all flex items-center justify-center font-bold border border-white/20"
-                  title={t("recipe_download_pdf")}
-                >
-                  📄
-                </button>
-                <button
-                  onClick={() => setSelectedRecipe(null)}
-                  className="absolute top-6 right-6 h-10 w-10 rounded-full bg-black/20 text-white backdrop-blur-xl hover:bg-white/40 transition-all flex items-center justify-center font-bold border border-white/20"
-                  title={t("Close Recipe")}
-                >
-                  ✕
-                </button>
+                <div className="absolute top-6 right-6 flex items-center gap-2 z-20">
+                  <button
+                    onClick={() => downloadRecipePdf(selectedRecipe, language)}
+                    className="h-10 w-10 rounded-full bg-black/20 text-white backdrop-blur-xl hover:bg-white/40 transition-all flex items-center justify-center font-bold border border-white/20"
+                    title={t("recipe_download_pdf")}
+                  >
+                    📄
+                  </button>
+                  <button
+                    onClick={() => setIsExpanded(true)}
+                    className="h-10 w-10 rounded-full bg-black/20 text-white backdrop-blur-xl hover:bg-white/40 transition-all flex items-center justify-center font-bold border border-white/20"
+                    title={t("View Details")}
+                  >
+                    ⛶
+                  </button>
+                  <button
+                    onClick={() => setSelectedRecipe(null)}
+                    className="h-10 w-10 rounded-full bg-black/20 text-white backdrop-blur-xl hover:bg-white/40 transition-all flex items-center justify-center font-bold border border-white/20"
+                    title={t("Close Recipe")}
+                  >
+                    ✕
+                  </button>
+                </div>
 
                 <div className="absolute bottom-6 left-8 right-8">
                   <div className="flex items-start justify-between gap-4">
@@ -300,12 +305,21 @@ export function MealSection({ dayPlan, recipes, weekStartStr, onUpdate }: MealSe
                     {language === 'ro' && selectedRecipe.name_ro ? selectedRecipe.name_ro : selectedRecipe.name}
                   </h3>
                 </div>
-                <button
-                  onClick={() => setIsExpanded(false)}
-                  className="h-14 w-14 rounded-2xl bg-sage-50 hover:bg-red-50 hover:text-red-500 text-sage-400 transition-all flex items-center justify-center text-2xl"
-                >
-                  ✕
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => downloadRecipePdf(selectedRecipe, language)}
+                    className="h-14 w-14 rounded-2xl bg-sage-50 text-sage-400 hover:bg-sage-100 hover:text-sage-600 transition-all flex items-center justify-center text-2xl"
+                    title={t("recipe_download_pdf")}
+                  >
+                    📄
+                  </button>
+                  <button
+                    onClick={() => setIsExpanded(false)}
+                    className="h-14 w-14 rounded-2xl bg-sage-50 hover:bg-red-50 hover:text-red-500 text-sage-400 transition-all flex items-center justify-center text-2xl"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
               <div className="p-10 overflow-y-auto flex-1">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-16">

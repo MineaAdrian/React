@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { isSameDay } from "date-fns";
 import { getWeekPlan } from "@/app/actions/week";
@@ -26,6 +26,17 @@ export function WeekCalendar() {
     return todayInWeek || dates[0];
   });
   const [loading, setLoading] = useState(true);
+  const mealSectionRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to meal section when day changes
+  useEffect(() => {
+    if (!loading && mealSectionRef.current) {
+      // Small timeout to ensure DOM is ready after potential re-renders
+      setTimeout(() => {
+        mealSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
+  }, [selectedDate, loading]);
 
   // Update selected date when week changes
   useEffect(() => {
@@ -109,14 +120,16 @@ export function WeekCalendar() {
         onSelect={setSelectedDate}
       />
 
-      {dayPlan && (
-        <MealSection
-          dayPlan={dayPlan}
-          recipes={recipes}
-          weekStartStr={weekStartStr}
-          onUpdate={handleMealUpdate}
-        />
-      )}
+      <div ref={mealSectionRef} className="scroll-mt-24 sm:scroll-mt-32">
+        {dayPlan && (
+          <MealSection
+            dayPlan={dayPlan}
+            recipes={recipes}
+            weekStartStr={weekStartStr}
+            onUpdate={handleMealUpdate}
+          />
+        )}
+      </div>
     </div>
   );
 }

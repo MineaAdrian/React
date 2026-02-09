@@ -6,6 +6,7 @@ import { RecipeCard } from "./RecipeCard";
 import type { Recipe } from "@/types";
 import type { MealType } from "@/types";
 import { MEAL_LABELS } from "@/lib/week";
+import { normalizeString } from "@/lib/search";
 
 type Props = {
   mealType: MealType;
@@ -42,7 +43,7 @@ export function RecipeSearchModal(props: Props) {
       });
     }
 
-    const q = search.trim().toLowerCase();
+    const q = normalizeString(search);
     if (!q) return list;
 
     // Split items into those that match by name vs matching only by ingredients
@@ -50,16 +51,19 @@ export function RecipeSearchModal(props: Props) {
     const ingredientMatches: Recipe[] = [];
 
     list.forEach((r) => {
+      const normalizedName = normalizeString(r.name);
+      const normalizedNameRo = normalizeString(r.name_ro || "");
+
       const matchesName =
-        r.name.toLowerCase().includes(q) ||
-        r.name_ro?.toLowerCase().includes(q);
+        normalizedName.includes(q) ||
+        normalizedNameRo.includes(q);
 
       if (matchesName) {
         nameMatches.push(r);
       } else {
         const matchesIngredients = r.ingredients?.some((i) =>
-          i.name.toLowerCase().includes(q) ||
-          i.name_ro?.toLowerCase().includes(q)
+          normalizeString(i.name).includes(q) ||
+          normalizeString(i.name_ro || "").includes(q)
         );
         if (matchesIngredients) {
           ingredientMatches.push(r);

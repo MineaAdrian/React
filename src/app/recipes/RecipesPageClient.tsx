@@ -2,11 +2,13 @@
 
 import React, { useEffect, useState, useMemo, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { getRecipes, createRecipe, uploadRecipePhoto, updateRecipe, reportRecipe, deleteRecipe } from "@/app/actions/recipes";
+import { getRecipes, createRecipe, updateRecipe, reportRecipe, deleteRecipe } from "@/app/actions/recipes";
 import { RecipeCard } from "@/components/recipes/RecipeCard";
 import { MEAL_LABELS } from "@/lib/week";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useTranslation } from "@/hooks/useTranslation";
+import { downloadRecipePdf } from "@/lib/pdf";
+import { normalizeString } from "@/lib/search";
 import type { Recipe } from "@/types";
 import type { MealType } from "@/types";
 
@@ -128,7 +130,18 @@ export function RecipesPageClient({ familyId, userId }: Props) {
       setIsUploading(true);
       const formData = new FormData();
       formData.append("file", file);
-      const url = await uploadRecipePhoto(formData);
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Upload failed");
+      }
+
+      const { url } = await response.json();
       setPhotoUrl(url);
     } catch (err: any) {
       console.error("Upload failed", err);
@@ -193,7 +206,7 @@ export function RecipesPageClient({ familyId, userId }: Props) {
 
   // Filter recipes based on search query
   const filteredRecipes = useMemo(() => {
-    const query = searchQuery.toLowerCase().trim();
+    const query = normalizeString(searchQuery);
 
     // First, filter by "My Recipes"
     const baseList = recipes.filter((recipe) => {
@@ -209,17 +222,20 @@ export function RecipesPageClient({ familyId, userId }: Props) {
     const ingredientMatches: Recipe[] = [];
 
     baseList.forEach((recipe) => {
+      const normalizedName = normalizeString(recipe.name);
+      const normalizedNameRo = normalizeString(recipe.name_ro || "");
+
       const matchesName =
-        recipe.name.toLowerCase().includes(query) ||
-        recipe.name_ro?.toLowerCase().includes(query);
+        normalizedName.includes(query) ||
+        normalizedNameRo.includes(query);
 
       if (matchesName) {
         nameMatches.push(recipe);
       } else {
         const matchesIngredients = recipe.ingredients?.some(
           (ing) =>
-            ing.name.toLowerCase().includes(query) ||
-            ing.name_ro?.toLowerCase().includes(query)
+            normalizeString(ing.name).includes(query) ||
+            normalizeString(ing.name_ro || "").includes(query)
         );
         if (matchesIngredients) {
           ingredientMatches.push(recipe);
@@ -446,7 +462,7 @@ function RecipeFormView({
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-sage-700 mb-2">{t("recipes_meal_type")}</label>
+            <label className="block text-sm font-medium text-sage-700 mb-2"></label>
             <div className="flex flex-wrap gap-2">
               {(Object.keys(MEAL_LABELS) as MealType[]).map((key) => {
                 const isSelected = mealTypes.includes(key);
@@ -473,7 +489,7 @@ function RecipeFormView({
                 );
               })}
             </div>
-            <p className="text-xs text-sage-400 mt-2">{t("recipes_meal_type_hint")}</p>
+            <p className="text-xs text-sage-400 mt-2"></p>
           </div>
           <div>
             <label className="block text-sm font-medium text-sage-700 mb-1">{t("recipes_photo")}</label>
@@ -485,18 +501,20 @@ function RecipeFormView({
                 accept="image/*"
                 className="hidden"
               />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-                className="btn-secondary flex items-center gap-2"
-              >
-                {isUploading ? (
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-sage-300 border-t-sage-600" />
-                ) : (
-                  `📷 ${t("recipes_select_photo")}`
-                )}
-              </button>
+              {!photoUrl && (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="btn-secondary flex items-center gap-2"
+                >
+                  {isUploading ? (
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-sage-300 border-t-sage-600" />
+                  ) : (
+                    `📷 ${t("recipes_select_photo")}`
+                  )}
+                </button>
+              )}
               {photoUrl && (
                 <div className="relative h-16 w-16 overflow-hidden rounded-xl shadow-sm border border-sage-200">
                   <img src={photoUrl} alt="Preview" className="absolute inset-0 h-full w-full object-cover" />

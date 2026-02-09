@@ -1,0 +1,30 @@
+??? Next.js 16.1.6 (Turbopack)
+- Environments: .env.local, .env
+- Experiments (use with caution):
+  ?? serverActions
+
+  Creating an optimized production build ...
+??? Compiled successfully in 8.0s
+  Running TypeScript ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/3) ...
+??? Generating static pages using 7 workers (3/3) in 219.4ms
+  Finalizing page optimization ...
+
+Route (app)
+??? ?? /
+??? ?? /_not-found
+??? ?? /api/upload
+??? ?? /auth/callback
+??? ?? /login
+??? ?? /recipes
+??? ?? /register
+??? ?? /settings
+??? ?? /shopping-list
+??? ?? /week
+
+
+?? Proxy (Middleware)
+
+??  (Dynamic)  server-rendered on demand
+

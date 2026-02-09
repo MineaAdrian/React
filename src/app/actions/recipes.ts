@@ -140,39 +140,6 @@ export async function createRecipe(
   return toRecipe(fullRecipe as any);
 }
 
-export async function uploadRecipePhoto(formData: FormData): Promise<string> {
-  const file = formData.get("file") as File;
-  if (!file) throw new Error("No file provided");
-
-  try {
-    const supabase = await createClient();
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-    // Store in a flat structure or specific folder
-    const filePath = `recipe-photos/${fileName}`;
-
-    const { data, error } = await supabase.storage
-      .from("recipes")
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
-
-    if (error) {
-      console.error("Supabase Storage Error:", error);
-      throw new Error(`Storage error: ${error.message}`);
-    }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from("recipes")
-      .getPublicUrl(filePath);
-
-    return publicUrl;
-  } catch (err) {
-    console.error("uploadRecipePhoto exception:", err);
-    throw err;
-  }
-}
 
 export async function updateRecipe(
   id: string,
