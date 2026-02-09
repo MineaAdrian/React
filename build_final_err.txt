@@ -1,0 +1,47 @@
+??? Next.js 16.1.6 (Turbopack)
+- Environments: .env.local, .env
+- Experiments (use with caution):
+  ?? serverActions
+
+  Creating an optimized production build ...
+??? Compiled successfully in 6.0s
+  Running TypeScript ...
+npx : Failed to compile.
+At line:1 char:1
++ npx next build 2>&1 | Out-File 
+-Encoding ascii 
+build_final_err.txt; t ...
++ ~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSp 
+   ecified: (Failed to compile.:St  
+  ring) [], RemoteException
+    + FullyQualifiedErrorId : Nativ 
+   eCommandError
+ 
+
+./src/proxy.ts:2:31
+Type error: Cannot find module 
+'@/lib/supabase/middleware' or its 
+corresponding type declarations.
+
+[0m [90m 1 |[39m 
+[36mimport[39m { type 
+[33mNextRequest[39m } 
+[36mfrom[39m 
+[32m"next/server"[39m[33m;[39m
+[31m[1m>[22m[39m[90m 2 |[39m 
+[36mimport[39m { updateSession } 
+[36mfrom[39m [32m"@/lib/supabase/
+middleware"[39m[33m;[39m
+ [90m   |[39m                     
+          [31m[1m^[22m[39m
+ [90m 3 |[39m
+ [90m 4 |[39m [36mexport[39m 
+[36masync[39m [36mfunction[39m 
+proxy(request[33m:[39m 
+[33mNextRequest[39m) {
+ [90m 5 |[39m   [36mreturn[39m 
+[36mawait[39m updateSession(reques
+t)[33m;[39m[0m
+Next.js build worker exited with 
+code: 1 and signal: null
