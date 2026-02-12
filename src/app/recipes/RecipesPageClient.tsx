@@ -169,21 +169,21 @@ export function RecipesPageClient({ familyId, userId }: Props) {
       .filter(ing => ing.name.trim() !== "" || (ing.name_ro && ing.name_ro.trim() !== ""))
       .map(ing => {
         const iName = ing.name.trim() || (ing.name_ro?.trim() || "");
-        const iNameRo = ing.name_ro?.trim() || (ing.name.trim() || "");
         return {
           name: iName,
-          name_ro: iNameRo,
           quantity: typeof ing.quantity === 'string' ? parseFloat(ing.quantity) || 0 : ing.quantity,
           unit: ing.unit.trim() || "pcs"
         };
       });
 
     const targetFamilyId = isFamilyOnly && familyId ? familyId : null;
-    const ingredientsRo = cleanedIngredients.map(ing => ({
-      name: ing.name_ro || ing.name,
-      quantity: ing.quantity,
-      unit: ing.unit
-    }));
+    const ingredientsRo = ingredients
+      .filter(ing => ing.name.trim() !== "" || (ing.name_ro && ing.name_ro.trim() !== ""))
+      .map(ing => ({
+        name: ing.name_ro?.trim() || ing.name.trim(),
+        quantity: typeof ing.quantity === 'string' ? parseFloat(ing.quantity) || 0 : ing.quantity,
+        unit: ing.unit.trim() || "pcs"
+      }));
 
     try {
       setIsSubmitting(true);
@@ -803,13 +803,16 @@ function RecipeDetailsView({ recipe, profile, onCancel, onEdit, onDelete, onRepo
               <h3 className="text-xs font-black uppercase tracking-widest text-sage-400 mb-3">{t("recipes_ingredients")}</h3>
               <ul className="space-y-2">
                 {recipe.ingredients.map((ing, i) => {
-                  const roName = ing.name_ro || recipe.ingredients_ro?.[i]?.name;
+                  const roIng = recipe.ingredients_ro?.[i];
+                  const roName = ing.name_ro || roIng?.name;
+                  const displayQty = (language === 'ro' && roIng?.quantity != null) ? roIng.quantity : ing.quantity;
+                  const displayUnit = (language === 'ro' && roIng?.unit) ? roIng.unit : ing.unit;
                   return (
                     <li key={i} className="flex justify-between text-sm">
                       <span className="font-medium text-sage-800">
                         {language === 'ro' ? (roName || ing.name) : (ing.name || roName)}
                       </span>
-                      <span className="text-sage-500 font-mono text-xs">{ing.quantity} {ing.unit}</span>
+                      <span className="text-sage-500 font-mono text-xs">{displayQty} {displayUnit}</span>
                     </li>
                   );
                 })}

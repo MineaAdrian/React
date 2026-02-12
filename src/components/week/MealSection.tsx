@@ -243,7 +243,10 @@ export function MealSection({ dayPlan, recipes, weekStartStr, onUpdate }: MealSe
                   </h4>
                   <div className="grid grid-cols-1 gap-3">
                     {selectedRecipe.ingredients.map((ing, i) => {
-                      const roName = ing.name_ro || selectedRecipe.ingredients_ro?.[i]?.name;
+                      const roIng = selectedRecipe.ingredients_ro?.[i];
+                      const roName = ing.name_ro || roIng?.name;
+                      const displayQty = (language === 'ro' && roIng?.quantity != null) ? roIng.quantity : ing.quantity;
+                      const displayUnit = (language === 'ro' && roIng?.unit) ? roIng.unit : ing.unit;
                       return (
                         <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-sage-50/50 border border-sage-50 group/item hover:bg-white transition-colors">
                           <div className="w-1.5 h-1.5 rounded-full bg-sage-300 group-hover/item:bg-sage-600 transition-colors" />
@@ -251,7 +254,7 @@ export function MealSection({ dayPlan, recipes, weekStartStr, onUpdate }: MealSe
                             {language === 'ro' && roName ? roName : ing.name}
                           </span>
                           <span className="text-[10px] font-black text-sage-400">
-                            {ing.quantity} {ing.unit}
+                            {displayQty} {displayUnit}
                           </span>
                         </div>
                       );
@@ -281,15 +284,12 @@ export function MealSection({ dayPlan, recipes, weekStartStr, onUpdate }: MealSe
               </div>
             </div>
           ) : (
-            <div className="sticky top-24 h-[500px] bg-white rounded-[3rem] border border-sage-100 shadow-xl flex flex-col items-center justify-center text-center p-12 transition-all duration-700">
-              <div className="relative mb-8">
-                <div className="absolute inset-0 bg-sage-100 rounded-full blur-2xl opacity-40 animate-pulse" />
-                <div className="relative w-24 h-24 bg-sage-50 rounded-full flex items-center justify-center text-4xl shadow-inner grayscale opacity-40">🍴</div>
-              </div>
-              <h3 className="text-xl font-black text-sage-800 mb-3 tracking-tighter">{t("menu_kitchen_guide")}</h3>
-              <p className="text-sage-400 text-xs max-w-[200px] leading-relaxed font-medium uppercase tracking-widest">
-                {t("menu_select_recipe")}
-              </p>
+            <div className="sticky top-24 h-[400px] bg-white rounded-[3rem] border border-sage-100 shadow-xl flex flex-col items-center justify-center text-center overflow-hidden transition-all duration-700">
+              <img
+                src={language === 'ro' ? '/MAT_ro.jpeg' : '/MAT_en.png'}
+                alt="GustoHUB by MAT"
+                className="w-full h-full object-cover"
+              />
             </div>
           )}
         </div>
@@ -328,13 +328,16 @@ export function MealSection({ dayPlan, recipes, weekStartStr, onUpdate }: MealSe
                       <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-sage-300 mb-6">{t("menu_pantry_check")}</h4>
                       <ul className="space-y-4">
                         {selectedRecipe.ingredients.map((ing, i) => {
-                          const roName = ing.name_ro || selectedRecipe.ingredients_ro?.[i]?.name;
+                          const roIng = selectedRecipe.ingredients_ro?.[i];
+                          const roName = ing.name_ro || roIng?.name;
+                          const displayQty = (language === 'ro' && roIng?.quantity != null) ? roIng.quantity : ing.quantity;
+                          const displayUnit = (language === 'ro' && roIng?.unit) ? roIng.unit : ing.unit;
                           return (
                             <li key={i} className="flex flex-col pb-4 border-b border-sage-50 last:border-0">
                               <span className="text-base font-bold text-sage-800">
                                 {language === 'ro' && roName ? roName : ing.name}
                               </span>
-                              <span className="text-xs text-sage-400 font-bold uppercase tracking-tighter">{ing.quantity} {ing.unit}</span>
+                              <span className="text-xs text-sage-400 font-bold uppercase tracking-tighter">{displayQty} {displayUnit}</span>
                             </li>
                           );
                         })}

@@ -32,8 +32,11 @@ export async function downloadRecipePdf(recipe: Recipe, language: "en" | "ro" = 
     cursorY += 5;
 
     const ingredientData = recipe.ingredients.map((ing, i) => {
-        const ingName = (language === "ro" && (ing.name_ro || recipe.ingredients_ro?.[i]?.name)) ? (ing.name_ro || recipe.ingredients_ro?.[i]?.name) : ing.name;
-        return [ingName || "", `${ing.quantity || ""} ${ing.unit || ""}`];
+        const roIng = recipe.ingredients_ro?.[i];
+        const ingName = (language === "ro" && (ing.name_ro || roIng?.name)) ? (ing.name_ro || roIng?.name) : ing.name;
+        const qty = (language === "ro" && roIng?.quantity != null) ? roIng.quantity : ing.quantity;
+        const unit = (language === "ro" && roIng?.unit) ? roIng.unit : ing.unit;
+        return [ingName || "", `${qty || ""} ${unit || ""}`];
     });
 
     autoTable(doc, {

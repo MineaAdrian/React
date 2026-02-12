@@ -26,8 +26,8 @@ export function Nav() {
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between px-4 py-2 md:flex-nowrap md:py-3">
         {/* Row 1: Logo & Auth */}
         <div className="flex w-full items-center justify-between md:w-auto">
-          <Link href="/week" className="font-display text-lg font-semibold text-sage-800">
-            Family Planner
+          <Link href="/week" className="flex items-center">
+            <img src="/logo.jpeg" alt="GustoHUB by MAT" className="h-20 w-auto" />
           </Link>
           <div className="flex items-center gap-2 md:hidden">
             <div className="flex bg-sage-50 rounded-lg p-0.5 border border-sage-100">
